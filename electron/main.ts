@@ -194,7 +194,19 @@ app.on('ready', () => {
 });
 
 app.on('window-all-closed', () => {
-  // Do nothing, keep app running in tray
+  if (process.platform !== 'darwin') {
+    // On Windows/Linux, we might want to keep it running in tray, 
+    // but typically window-all-closed happens when we actually close windows.
+    // Since we prevent close in 'close' event, this might not be reached easily unless explicit quit.
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  } else {
+    mainWindow?.show();
+  }
 });
 
 app.on('activate', () => {

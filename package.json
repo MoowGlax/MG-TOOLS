@@ -10,7 +10,8 @@
     "dev:vite": "vite",
     "dev:electron": "wait-on tcp:5173 && tsc -p tsconfig.electron.json && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "build": "tsc -b && vite build && tsc -p tsconfig.electron.json && electron-builder",
-    "build:win": "npm run build -- --win",
+    "build:win": "tsc -b && vite build && tsc -p tsconfig.electron.json && electron-builder --win",
+    "build:mac": "tsc -b && vite build && tsc -p tsconfig.electron.json && electron-builder --mac",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -67,6 +68,27 @@
       "legalTrademarks": "MG Tools",
       "forceCodeSigning": false,
       "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns",
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

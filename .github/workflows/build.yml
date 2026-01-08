@@ -1,0 +1,48 @@
+name: Build/Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - 'test-build'
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            npm run build:win -- --publish never
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            npm run build:mac -- --publish never
+          fi
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mg-tools-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.blockmap
