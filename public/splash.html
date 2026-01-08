@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chargement - MG Tools</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .splash-container {
+            width: 360px; /* Slightly smaller than window to allow shadow */
+            height: 360px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Background glow effect */
+        .glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .logo-wrapper {
+            position: relative;
+            margin-bottom: 1.5rem;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .status {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            letter-spacing: 0.05em;
+        }
+
+        .loader {
+            width: 120px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loader-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            border-radius: 2px;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes loading {
+            0% { transform: translateX(-150%); }
+            100% { transform: translateX(250%); }
+        }
+
+        /* Fade in animation for the whole container */
+        .splash-container {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <div class="glow"></div>
+        
+        <div class="logo-wrapper">
+            <!-- Ensure logo.svg exists in the same directory (public/ or dist/) -->
+            <img src="./logo.svg" alt="MG Tools" class="logo">
+        </div>
+
+        <div class="title">MG Tools</div>
+        <div class="status">CHARGEMENT...</div>
+
+        <div class="loader">
+            <div class="loader-bar"></div>
+        </div>
+    </div>
+</body>
+</html>

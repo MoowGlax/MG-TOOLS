@@ -1,0 +1,206 @@
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron';
+import path from 'path';
+import { SecurityService } from './security';
+import { StorageService } from './storage';
+import { autoUpdater } from 'electron-updater';
+import log from 'electron-log';
+
+// Configure logging
+log.transports.file.level = 'info';
+autoUpdater.logger = log;
+
+// Set App ID for Windows Notifications
+app.setAppUserModelId('MG Tools');
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {
+  app.quit();
+}
+
+let mainWindow: BrowserWindow | null;
+let splashWindow: BrowserWindow | null;
+let tray: Tray | null = null;
+let isQuitting = false;
+
+const createTray = () => {
+    const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
+    tray = new Tray(iconPath);
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Ouvrir MG Tools', click: () => mainWindow?.show() },
+        { type: 'separator' },
+        { label: 'Quitter', click: () => {
+            isQuitting = true;
+            app.quit();
+        }}
+    ]);
+    tray.setToolTip('MG Tools');
+    tray.setContextMenu(contextMenu);
+    
+    tray.on('click', () => {
+        if (mainWindow?.isVisible()) {
+            mainWindow.hide();
+        } else {
+            mainWindow?.show();
+            mainWindow?.focus();
+        }
+    });
+};
+
+const createWindow = () => {
+  const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
+  
+  // Create Splash Window
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 400,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    icon: iconPath,
+    center: true,
+    resizable: false,
+    webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+    }
+  });
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+      splashWindow.loadFile(path.join(__dirname, '../public/splash.html'));
+  } else {
+      splashWindow.loadFile(path.join(__dirname, '../dist/splash.html'));
+  }
+
+  // Create Main Window (Hidden)
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    show: false, // Hide initially
+    icon: iconPath,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#00000000',
+      symbolColor: '#74b1be',
+      height: 30
+    }
+  });
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  // Show main window when ready and close splash
+  mainWindow.once('ready-to-show', () => {
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+          splashWindow?.destroy();
+          mainWindow?.show();
+          mainWindow?.focus();
+      }, 3000);
+  });
+
+  // Handle Close to Tray
+  mainWindow.on('close', (event) => {
+      if (!isQuitting) {
+          event.preventDefault();
+          mainWindow?.hide();
+          return false;
+      }
+      return true;
+  });
+};
+
+app.on('before-quit', () => {
+    isQuitting = true;
+});
+
+app.on('ready', () => {
+  createWindow();
+  createTray();
+
+  // IPC handlers
+  ipcMain.handle('ping', () => 'pong');
+
+  ipcMain.handle('save-credentials', async (_event, key: string, value: string) => {
+    return SecurityService.saveCredentials(key, value);
+  });
+
+  ipcMain.handle('get-credentials', async (_event, key: string) => {
+    return SecurityService.getCredentials(key);
+  });
+
+  // Storage Handlers
+  ipcMain.handle('save-data', async (_event, key: string, value: any) => {
+    return StorageService.saveData(key, value);
+  });
+
+  ipcMain.handle('get-data', async (_event, key: string) => {
+    return StorageService.getData(key);
+  });
+
+  // Update Handlers
+  ipcMain.handle('check-for-updates', () => {
+    return autoUpdater.checkForUpdates();
+  });
+
+  ipcMain.handle('quit-and-install', () => {
+    autoUpdater.quitAndInstall();
+  });
+
+  // Auto-updater events
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow?.webContents.send('update-status', 'checking');
+  });
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('update-status', 'available');
+  });
+  autoUpdater.on('update-not-available', (info) => {
+    mainWindow?.webContents.send('update-status', 'not-available');
+  });
+  autoUpdater.on('error', (err) => {
+    mainWindow?.webContents.send('update-status', 'error', err.message);
+  });
+  autoUpdater.on('download-progress', (progressObj) => {
+    mainWindow?.webContents.send('update-download-progress', progressObj.percent);
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.webContents.send('update-status', 'downloaded');
+  });
+
+  ipcMain.handle('proxy-request', async (_event, url: string, options: RequestInit) => {
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => { headers[key] = value; });
+      
+      return { 
+        ok: response.ok, 
+        status: response.status, 
+        data,
+        headers
+      };
+    } catch (error: any) {
+      return { ok: false, status: 500, error: error.message };
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  // Do nothing, keep app running in tray
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  } else if (mainWindow) {
+      mainWindow.show();
+  }
+});
