@@ -1,6 +1,15 @@
-# MG-TOOLS
+<div align="center">
+  <img src="public/logo.svg" alt="MG Tools Logo" width="120" height="120">
+  <h1>MG Tools</h1>
+  <p>
+    <b>Suite d'outils tout-en-un pour la gestion de médias, moderne, sécurisée et locale.</b>
+  </p>
+  <a href="https://discord.gg/XZE3jyS4ms">
+    <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord">
+  </a>
+</div>
 
-**Suite d'outils tout-en-un pour la gestion de médias, moderne, sécurisée et locale.**
+---
 
 MG-TOOLS est une application de bureau conçue pour centraliser et simplifier la gestion de vos séries et indexeurs (Prowlarr) avec une interface fluide et réactive. Le projet met un point d'honneur sur la **confidentialité** et la **sécurité** : toutes les données sensibles sont chiffrées et stockées localement sur votre machine.
 
@@ -37,6 +46,21 @@ MG-TOOLS est une application de bureau conçue pour centraliser et simplifier la
 - **Interface sombre/moderne** : Design soigné utilisant Tailwind CSS et Framer Motion.
 - **Léger & Rapide** : Construit sur Electron + Vite + React.
 
+## 🗺️ Roadmap (Ce qui devrait arriver)
+
+Voici les fonctionnalités prévues pour les futures mises à jour :
+
+- [ ] **STRM Maker** : Création facilitée de fichiers .strm.
+- [ ] **Compatibilité macOS** : Portage de l'application pour l'écosystème Apple.
+- [ ] **Modules externes** : Possibilité de créer et d'ajouter des plugins communautaires.
+- [ ] **Accès rapide (Quick Links)** : Page personnalisable avec vos liens et raccourcis (images custom).
+- [ ] **Backup & Restauration** : Sauvegarde complète de la configuration et des données.
+- [ ] **Multilingue** : Support de plusieurs langues pour l'interface.
+- [ ] **Module SSH & Synology** : Gestion à distance et intégration potentielle d'outils SSH.
+- [ ] **Détails TMDB dans Prowlarr** : Vue enrichie (infos films/séries) directement dans les résultats de recherche.
+- [ ] **YoutubeToMP3** : Outil de conversion rapide (à l'étude).
+- [ ] **Vos idées ?** : La communauté décide des prochaines évolutions !
+
 ## 🛠️ Installation & Développement
 
 ### Prérequis
@@ -63,6 +87,12 @@ npm run dev
 # Créer l'exécutable pour Windows
 npm run build:win
 ```
+
+## 💬 Rejoindre la communauté
+
+Besoin d'aide, une suggestion ou simplement envie de discuter ? Rejoignez le serveur Discord officiel :
+
+[![Discord Banner](https://invidget.switchblade.xyz/XZE3jyS4ms)](https://discord.gg/XZE3jyS4ms)
 
 ## 📝 Crédits
 
