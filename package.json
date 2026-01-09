@@ -80,7 +80,9 @@
       "icon": "public/logo.icns",
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
       "contents": [
