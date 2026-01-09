@@ -6,6 +6,7 @@ on:
       - 'v*'
     branches:
       - 'test-build'
+      - 'main'
 
 jobs:
   release:
@@ -47,3 +48,4 @@ jobs:
             release/*.exe
             release/*.dmg
             release/*.blockmap
+            release/*.yml

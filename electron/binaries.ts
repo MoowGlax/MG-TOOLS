@@ -42,15 +42,18 @@ const findFileRecursive = async (dir: string, fileName: string): Promise<string 
 
 export class BinariesManager {
     static getPaths() {
+        const binDir = path.join(app.getPath('userData'), 'bin');
         return {
-            ytdlp: path.join(BIN_DIR, YTDLP_NAME),
-            ffmpeg: path.join(BIN_DIR, FFMPEG_NAME)
+            ytdlp: path.join(binDir, YTDLP_NAME),
+            ffmpeg: path.join(binDir, FFMPEG_NAME),
+            dir: binDir
         };
     }
 
     static async ensureBinaries(onProgress: (status: string) => void) {
-        await fs.ensureDir(BIN_DIR);
         const paths = this.getPaths();
+        console.log('[BinariesManager] Target Binaries Directory:', paths.dir);
+        await fs.ensureDir(paths.dir);
 
         // 1. Check yt-dlp
         if (!fs.existsSync(paths.ytdlp)) {
@@ -64,19 +67,19 @@ export class BinariesManager {
         if (!fs.existsSync(paths.ffmpeg)) {
             onProgress('Téléchargement de ffmpeg...');
             await new Promise<void>((resolve, reject) => {
-                ffbinaries.downloadBinaries(['ffmpeg'], { destination: BIN_DIR, quiet: true }, (err) => {
+                ffbinaries.downloadBinaries(['ffmpeg'], { destination: paths.dir, quiet: true }, (err) => {
                     if (err) reject(err);
                     else resolve();
                 });
             });
             if (!fs.existsSync(paths.ffmpeg)) {
-                const found = await findFileRecursive(BIN_DIR, FFMPEG_NAME);
+                const found = await findFileRecursive(paths.dir, FFMPEG_NAME);
                 if (found) {
                     await fs.copyFile(found, paths.ffmpeg);
                 }
             }
             if (!IS_WIN && fs.existsSync(paths.ffmpeg)) await chmod(paths.ffmpeg, 0o755);
-            await removeQuarantine(BIN_DIR);
+            await removeQuarantine(paths.dir);
             if (fs.existsSync(paths.ffmpeg)) await removeQuarantine(paths.ffmpeg);
         }
         

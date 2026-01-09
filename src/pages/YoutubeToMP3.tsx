@@ -35,6 +35,8 @@ export default function YoutubeToMP3() {
             });
             
             await window.electronAPI.youtube.checkBinaries();
+            const path = await window.electronAPI.youtube.getBinariesPath();
+            console.log('Binaries path:', path);
             setBinaryStatus(null);
             cleanup();
         } catch (error) {

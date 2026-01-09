@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Youtube API
   youtube: {
       checkBinaries: () => ipcRenderer.invoke('youtube:check-binaries'),
+      getBinariesPath: () => ipcRenderer.invoke('youtube:get-binaries-path'),
       getInfo: (url: string) => ipcRenderer.invoke('youtube:get-info', url),
       download: (url: string, options: any) => ipcRenderer.invoke('youtube:download', url, options),
       cancel: () => ipcRenderer.invoke('youtube:cancel'),

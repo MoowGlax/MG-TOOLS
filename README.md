@@ -54,14 +54,14 @@ MG-TOOLS est une application de bureau conçue pour centraliser et simplifier la
 Voici les fonctionnalités prévues pour les futures mises à jour :
 
 - [ ] **STRM Maker** : Création facilitée de fichiers .strm.
-- [ ] **Compatibilité macOS** : Portage de l'application pour l'écosystème Apple.
+- [x] **Support macOS (partiel)** : Build disponible, fonctionnalités en cours de stabilisation.
 - [ ] **Modules externes** : Possibilité de créer et d'ajouter des plugins communautaires.
 - [ ] **Accès rapide (Quick Links)** : Page personnalisable avec vos liens et raccourcis (images custom).
 - [ ] **Backup & Restauration** : Sauvegarde complète de la configuration et des données.
 - [ ] **Multilingue** : Support de plusieurs langues pour l'interface.
 - [ ] **Module SSH & Synology** : Gestion à distance et intégration potentielle d'outils SSH.
 - [ ] **Détails TMDB dans Prowlarr** : Vue enrichie (infos films/séries) directement dans les résultats de recherche.
-- [ ] **YoutubeToMP3** : Outil de conversion rapide (à l'étude).
+- [x] **YouTube Downloader (MP3/MP4 + playlists)** : Disponible (bêta).
 - [ ] **Vos idées ?** : La communauté décide des prochaines évolutions !
 
 ## 🛠️ Installation & Développement

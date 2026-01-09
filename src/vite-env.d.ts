@@ -20,6 +20,7 @@ interface IElectronAPI {
   // Youtube API
   youtube: {
       checkBinaries: () => Promise<void>;
+      getBinariesPath: () => Promise<string>;
       getInfo: (url: string) => Promise<any>;
       download: (url: string, options: DownloadOptions) => Promise<{ success: boolean }>;
       cancel: () => Promise<boolean>;

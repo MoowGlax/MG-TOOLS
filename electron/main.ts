@@ -144,6 +144,7 @@ app.on('before-quit', () => {
 });
 
 app.on('ready', () => {
+  console.log('[Main] UserData Path:', app.getPath('userData'));
   createWindow();
   createTray();
 
@@ -220,6 +221,10 @@ ipcMain.handle('youtube:check-binaries', async (event) => {
     return BinariesManager.ensureBinaries((status) => {
         event.sender.send('youtube:binary-progress', status);
     });
+});
+
+ipcMain.handle('youtube:get-binaries-path', () => {
+    return path.join(app.getPath('userData'), 'bin');
 });
 
 ipcMain.handle('youtube:get-info', async (_, url) => {
