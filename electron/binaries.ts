@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import { app } from 'electron';
 import { chmod } from 'fs/promises';
 import ffbinaries from 'ffbinaries';
+import execa from 'execa';
 
 const BIN_DIR = path.join(app.getPath('userData'), 'bin');
 const IS_WIN = process.platform === 'win32';
@@ -14,6 +15,30 @@ const FFMPEG_NAME = IS_WIN ? 'ffmpeg.exe' : 'ffmpeg';
 const YTDLP_URL = IS_WIN 
     ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
     : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos';
+
+const removeQuarantine = async (targetPath: string) => {
+    if (process.platform !== 'darwin') return;
+    try {
+        await execa('xattr', ['-dr', 'com.apple.quarantine', targetPath]);
+    } catch {}
+};
+
+const findFileRecursive = async (dir: string, fileName: string): Promise<string | null> => {
+    try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isFile() && entry.name === fileName) return fullPath;
+            if (entry.isDirectory()) {
+                const found = await findFileRecursive(fullPath, fileName);
+                if (found) return found;
+            }
+        }
+        return null;
+    } catch {
+        return null;
+    }
+};
 
 export class BinariesManager {
     static getPaths() {
@@ -32,6 +57,7 @@ export class BinariesManager {
             onProgress('Téléchargement de yt-dlp...');
             await this.downloadFile(YTDLP_URL, paths.ytdlp);
             if (!IS_WIN) await chmod(paths.ytdlp, 0o755);
+            await removeQuarantine(paths.ytdlp);
         }
 
         // 2. Check ffmpeg
@@ -43,6 +69,15 @@ export class BinariesManager {
                     else resolve();
                 });
             });
+            if (!fs.existsSync(paths.ffmpeg)) {
+                const found = await findFileRecursive(BIN_DIR, FFMPEG_NAME);
+                if (found) {
+                    await fs.copyFile(found, paths.ffmpeg);
+                }
+            }
+            if (!IS_WIN && fs.existsSync(paths.ffmpeg)) await chmod(paths.ffmpeg, 0o755);
+            await removeQuarantine(BIN_DIR);
+            if (fs.existsSync(paths.ffmpeg)) await removeQuarantine(paths.ffmpeg);
         }
         
         onProgress('Prêt');

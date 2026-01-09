@@ -31,6 +31,8 @@ export class YoutubeService {
             
             if (isPlaylist) {
                  const { stdout } = await execa(paths.ytdlp, [
+                    '--quiet',
+                    '--no-warnings',
                     '--dump-single-json',
                     '--flat-playlist',
                     url
@@ -53,11 +55,14 @@ export class YoutubeService {
                 };
             } else {
                 const { stdout } = await execa(paths.ytdlp, [
-                    '--dump-json',
+                    '--quiet',
+                    '--no-warnings',
+                    '--dump-single-json',
                     '--no-playlist',
                     url
                 ]);
-                const data = JSON.parse(stdout);
+                const jsonText = stdout.trim().split('\n').slice(-1)[0] ?? '';
+                const data = JSON.parse(jsonText);
                 return {
                     title: data.title,
                     thumbnail: data.thumbnail,
