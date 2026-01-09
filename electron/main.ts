@@ -24,9 +24,29 @@ let splashWindow: BrowserWindow | null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
+const getIconPath = () => {
+    const isDev = !!process.env.VITE_DEV_SERVER_URL;
+    if (process.platform === 'win32') {
+        return path.join(__dirname, isDev ? '../public/icon.ico' : '../dist/icon.ico');
+    }
+    // For macOS and Linux, use png
+    return path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png');
+};
+
 const createTray = () => {
-    const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
-    tray = new Tray(iconPath);
+    const iconPath = getIconPath();
+    try {
+        const icon = nativeImage.createFromPath(iconPath);
+        // Resize for macOS tray (usually 16x16 or 22x22) if the image is large
+        if (process.platform === 'darwin') {
+            icon.resize({ width: 16, height: 16 });
+        }
+        tray = new Tray(icon);
+    } catch (error) {
+        console.error('Failed to create tray icon:', error);
+        return;
+    }
+    
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Ouvrir MG Tools', click: () => mainWindow?.show() },
         { type: 'separator' },
@@ -49,7 +69,7 @@ const createTray = () => {
 };
 
 const createWindow = () => {
-  const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
+  const iconPath = getIconPath();
   
   // Create Splash Window
   splashWindow = new BrowserWindow({
