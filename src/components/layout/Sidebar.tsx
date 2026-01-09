@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Settings, Download, Search, Tv, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, Settings, Download, Search, Tv, PanelLeftClose, PanelLeftOpen, Youtube } from 'lucide-react';
 
 const DiscordIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -19,16 +19,19 @@ import { ThemeToggle } from '../ThemeToggle';
 import { DelugeService } from '../../services/deluge';
 import { ProwlarrService } from '../../services/prowlarr';
 import { SeriesService } from '../../services/series';
+import { useDownload } from '../../contexts/DownloadContext';
 
 const ALL_ITEMS = [
   { id: 'home', to: '/', icon: Home, label: 'Accueil' },
   { id: 'deluge', to: '/deluge', icon: Download, label: 'Deluge' },
   { id: 'prowlarr', to: '/prowlarr', icon: Search, label: 'Prowlarr' },
   { id: 'series', to: '/series', icon: Tv, label: 'Séries' },
+  { id: 'youtube', to: '/youtube', icon: Youtube, label: 'YouTube MP3' },
   { id: 'settings', to: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
 export function Sidebar() {
+  const { isDownloading } = useDownload();
   const [health, setHealth] = useState<Record<string, boolean>>({});
   const [hasSeriesUpdates, setHasSeriesUpdates] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -64,6 +67,21 @@ export function Sidebar() {
                 // Ensure defaults if empty
                 if (!parsed.order || parsed.order.length === 0) parsed.order = ALL_ITEMS.map(i => i.id);
                 if (!parsed.hidden) parsed.hidden = [];
+
+                // Check for new items that are not in the stored config
+                const currentIds = new Set(parsed.order);
+                const newItems = ALL_ITEMS.filter(i => !currentIds.has(i.id));
+                
+                if (newItems.length > 0) {
+                    // Add new items before settings if possible
+                    const settingsIndex = parsed.order.indexOf('settings');
+                    if (settingsIndex !== -1) {
+                        parsed.order.splice(settingsIndex, 0, ...newItems.map(i => i.id));
+                    } else {
+                        parsed.order.push(...newItems.map(i => i.id));
+                    }
+                }
+
                 setConfig(parsed);
             } catch (e) { console.error(e); }
         }
@@ -167,6 +185,9 @@ export function Sidebar() {
                     {item.to === '/series' && hasSeriesUpdates && (
                         <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Nouveaux changements de statut" />
                     )}
+                    {item.to === '/youtube' && isDownloading && (
+                         <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="Téléchargement en cours" />
+                    )}
                 </>
             )}
             {isCollapsed && (
@@ -178,6 +199,9 @@ export function Sidebar() {
                     )}
                     {item.to === '/series' && hasSeriesUpdates && (
                         <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-blue-500 border border-card" />
+                    )}
+                    {item.to === '/youtube' && isDownloading && (
+                        <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse border border-card" />
                     )}
                 </>
             )}

@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Update API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
+  notify: (title: string, body: string) => ipcRenderer.invoke('app:notify', title, body),
   onUpdateStatus: (callback: (status: string, message?: string) => void) => {
       const wrapper = (_event: any, status: string, message?: string) => callback(status, message);
       ipcRenderer.on('update-status', wrapper);
@@ -24,5 +25,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeUpdateListeners: () => {
       ipcRenderer.removeAllListeners('update-status');
       ipcRenderer.removeAllListeners('update-download-progress');
+  },
+
+  // Youtube API
+  youtube: {
+      checkBinaries: () => ipcRenderer.invoke('youtube:check-binaries'),
+      getInfo: (url: string) => ipcRenderer.invoke('youtube:get-info', url),
+      download: (url: string, options: any) => ipcRenderer.invoke('youtube:download', url, options),
+      cancel: () => ipcRenderer.invoke('youtube:cancel'),
+      openDownloads: () => ipcRenderer.invoke('youtube:open-downloads'),
+      onBinaryProgress: (callback: (status: string) => void) => {
+          const wrapper = (_event: any, status: string) => callback(status);
+          ipcRenderer.on('youtube:binary-progress', wrapper);
+          return () => ipcRenderer.removeListener('youtube:binary-progress', wrapper);
+      },
+      onDownloadProgress: (callback: (data: any) => void) => {
+          const wrapper = (_event: any, data: any) => callback(data);
+          ipcRenderer.on('youtube:download-progress', wrapper);
+          return () => ipcRenderer.removeListener('youtube:download-progress', wrapper);
+      }
   }
 });

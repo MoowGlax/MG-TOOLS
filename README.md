@@ -7,6 +7,9 @@
   <a href="https://discord.gg/XZE3jyS4ms">
     <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord">
   </a>
+  <a href="https://github.com/MoowGlax/MG-TOOLS/releases">
+    <img src="https://img.shields.io/github/downloads/MoowGlax/MG-TOOLS/total?style=for-the-badge&color=blue&label=T%C3%A9l%C3%A9chargements" alt="Total Downloads">
+  </a>
 </div>
 
 ---

@@ -1,7 +1,9 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification } from 'electron';
 import path from 'path';
 import { SecurityService } from './security';
 import { StorageService } from './storage';
+import { BinariesManager } from './binaries';
+import { YoutubeService } from './youtube';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
@@ -193,6 +195,47 @@ app.on('ready', () => {
   });
 });
 
+// Youtube IPC Handlers
+ipcMain.handle('youtube:check-binaries', async (event) => {
+    return BinariesManager.ensureBinaries((status) => {
+        event.sender.send('youtube:binary-progress', status);
+    });
+});
+
+ipcMain.handle('youtube:get-info', async (_, url) => {
+    return YoutubeService.getVideoInfo(url);
+});
+
+ipcMain.handle('youtube:download', async (event, url, options) => {
+    try {
+        await YoutubeService.downloadMedia(url, options, (percent) => {
+            event.sender.send('youtube:download-progress', percent);
+        });
+        return { success: true };
+    } catch (error: any) {
+        // Return error object instead of throwing to avoid Electron error logging for cancellations
+        return { 
+            success: false, 
+            error: error.message, 
+            isCancelled: error.message.includes('annulé') 
+        };
+    }
+});
+
+ipcMain.handle('youtube:open-downloads', async () => {
+    return YoutubeService.openDownloadsFolder();
+});
+
+ipcMain.handle('youtube:cancel', async () => {
+    return YoutubeService.cancelDownload();
+});
+
+ipcMain.handle('app:notify', async (_event, title, body) => {
+    // Icon relative to the executable in dist/win-unpacked/ or dev
+    const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
+    new Notification({ title, body, icon: iconPath }).show();
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     // On Windows/Linux, we might want to keep it running in tray, 
@@ -206,13 +249,5 @@ app.on('activate', () => {
     createWindow();
   } else {
     mainWindow?.show();
-  }
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  } else if (mainWindow) {
-      mainWindow.show();
   }
 });

@@ -1,11 +1,13 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AppProvider } from './contexts/AppContext';
+import { DownloadProvider } from './contexts/DownloadContext';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Deluge } from './pages/Deluge';
 import { Prowlarr } from './pages/Prowlarr';
 import { Settings } from './pages/Settings';
 import { Series } from './pages/Series';
+import YoutubeToMP3 from './pages/YoutubeToMP3';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
 
@@ -32,6 +34,7 @@ function AnimatedRoutes() {
           <Route path="deluge" element={<PageTransition><Deluge /></PageTransition>} />
           <Route path="prowlarr" element={<PageTransition><Prowlarr /></PageTransition>} />
           <Route path="series" element={<PageTransition><Series /></PageTransition>} />
+          <Route path="youtube" element={<PageTransition><YoutubeToMP3 /></PageTransition>} />
           <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
         </Route>
       </Routes>
@@ -42,10 +45,12 @@ function AnimatedRoutes() {
 function App() {
   return (
     <AppProvider>
-      <HashRouter>
-        <Toaster position="top-right" richColors />
-        <AnimatedRoutes />
-      </HashRouter>
+      <DownloadProvider>
+        <HashRouter>
+          <Toaster position="top-right" richColors />
+          <AnimatedRoutes />
+        </HashRouter>
+      </DownloadProvider>
     </AppProvider>
   );
 }

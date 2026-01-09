@@ -14,7 +14,32 @@ interface IElectronAPI {
   onUpdateStatus: (callback: (status: string, message?: string) => void) => () => void;
   onUpdateProgress: (callback: (percent: number) => void) => () => void;
   removeUpdateListeners: () => void;
+
+  notify: (title: string, body: string) => Promise<void>;
+
+  // Youtube API
+  youtube: {
+      checkBinaries: () => Promise<void>;
+      getInfo: (url: string) => Promise<any>;
+      download: (url: string, options: DownloadOptions) => Promise<{ success: boolean }>;
+      cancel: () => Promise<boolean>;
+      openDownloads: () => Promise<string>;
+      onBinaryProgress: (callback: (status: string) => void) => () => void;
+      onDownloadProgress: (callback: (data: ProgressData) => void) => () => void;
+  };
 }
+
+interface DownloadOptions {
+  format: 'mp3' | 'mp4';
+  quality: string;
+}
+
+interface ProgressData {
+    percent: number;
+    current?: number;
+    total?: number;
+    eta?: string;
+  }
 
 interface Window {
   electronAPI: IElectronAPI;
