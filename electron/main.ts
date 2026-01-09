@@ -10,6 +10,7 @@ import log from 'electron-log';
 // Configure logging
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
+autoUpdater.disableWebInstaller = true;
 
 // Set App ID for Windows Notifications
 app.setAppUserModelId('MG Tools');
@@ -169,8 +170,15 @@ app.on('ready', () => {
   });
 
   // Update Handlers
-  ipcMain.handle('check-for-updates', () => {
-    return autoUpdater.checkForUpdates();
+  ipcMain.handle('check-for-updates', async () => {
+    try {
+        const result = await autoUpdater.checkForUpdates();
+        // Return only serializable data
+        return result?.updateInfo;
+    } catch (error: any) {
+        log.error('Error checking for updates:', error);
+        throw error;
+    }
   });
 
   ipcMain.handle('quit-and-install', () => {
@@ -179,21 +187,26 @@ app.on('ready', () => {
 
   // Auto-updater events
   autoUpdater.on('checking-for-update', () => {
+    log.info('Checking for update...');
     mainWindow?.webContents.send('update-status', 'checking');
   });
   autoUpdater.on('update-available', (info) => {
+    log.info('Update available:', info);
     mainWindow?.webContents.send('update-status', 'available');
   });
   autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available:', info);
     mainWindow?.webContents.send('update-status', 'not-available');
   });
   autoUpdater.on('error', (err) => {
+    log.error('Error in auto-updater:', err);
     mainWindow?.webContents.send('update-status', 'error', err.message);
   });
   autoUpdater.on('download-progress', (progressObj) => {
     mainWindow?.webContents.send('update-download-progress', progressObj.percent);
   });
   autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded:', info);
     mainWindow?.webContents.send('update-status', 'downloaded');
   });
 
