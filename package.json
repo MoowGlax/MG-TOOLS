@@ -77,14 +77,20 @@
       "artifactName": "MG-Tools-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": "dmg",
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
       "icon": "public/logo.icns",
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "artifactName": "MG-Tools-${version}.${ext}"
+      "artifactName": "MG-Tools-${version}-${arch}.${ext}"
     },
     "dmg": {
       "contents": [
