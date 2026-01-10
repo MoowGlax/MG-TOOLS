@@ -194,24 +194,20 @@ export class YoutubeService {
                     // macOS / Linux
                     if (pid) {
                         try {
-                            // Kill the process aggressively
-                            process.kill(pid, 'SIGKILL');
+                            // Since we spawned with detached: true, we can kill the process group
+                            // by passing negative PID
+                            process.kill(-pid, 'SIGKILL');
+                        } catch (e: any) {
+                            console.error('[YoutubeService] Error killing process group:', e.message);
+                            // Fallback to normal kill if group kill fails
+                            try {
+                                process.kill(pid, 'SIGKILL');
+                            } catch (e2) { /* ignore */ }
                             
-                            // Also try to kill any children manually just in case
-                            // This uses pkill -P (parent pid) to find children
+                            // Last resort: pkill by parent PID
                             try {
                                 require('child_process').execSync(`pkill -P ${pid}`);
-                            } catch (e) {
-                                // Ignore if no children found or command missing
-                            }
-                        } catch (e: any) {
-                            console.error('[YoutubeService] Error killing process:', e.message);
-                            // Fallback to system kill command if node process.kill fails
-                            try {
-                                require('child_process').execSync(`kill -9 ${pid}`);
-                            } catch (e2) { 
-                                // Ignore
-                            }
+                            } catch (e3) { /* ignore */ }
                         }
                     }
                 }

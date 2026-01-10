@@ -83,6 +83,12 @@ Voici les fonctionnalités prévues pour les futures mises à jour :
 
 ### Installation
 
+**macOS (Notes de sécurité) :**
+Si vous rencontrez une erreur "endommagé" ou "développeur non identifié", exécutez cette commande dans le Terminal après avoir déplacé l'application dans `/Applications` :
+```bash
+sudo xattr -r -d com.apple.quarantine "/Applications/MG Tools.app"
+```
+
 **Windows (Automatique) :**
 Exécutez `scripts/setup-dev.bat`.
 
