@@ -2,125 +2,131 @@
   <img src="public/logo.svg" alt="MG Tools Logo" width="120" height="120">
   <h1>MG Tools</h1>
   <p>
-    <b>Suite d'outils tout-en-un pour la gestion de médias, moderne, sécurisée et locale.</b>
+    <b>La suite d'outils ultime pour vos médias : Téléchargement, Streaming et Gestion.</b>
   </p>
   <a href="https://discord.gg/XZE3jyS4ms">
-    <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord">
+    <img src="https://img.shields.io/badge/Discord-Rejoindre-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord">
   </a>
   <a href="https://github.com/MoowGlax/MG-TOOLS/releases">
     <img src="https://img.shields.io/github/downloads/MoowGlax/MG-TOOLS/total?style=for-the-badge&color=blue&label=T%C3%A9l%C3%A9chargements" alt="Total Downloads">
+  </a>
+  <a href="https://github.com/MoowGlax/MG-TOOLS/releases/latest">
+    <img src="https://img.shields.io/github/v/release/MoowGlax/MG-TOOLS?style=for-the-badge&color=orange&label=Version" alt="Latest Version">
   </a>
 </div>
 
 ---
 
-MG-TOOLS est une application de bureau conçue pour centraliser et simplifier la gestion de vos séries et indexeurs (Prowlarr) avec une interface fluide et réactive. Le projet met un point d'honneur sur la **confidentialité** et la **sécurité** : toutes les données sensibles sont chiffrées et stockées localement sur votre machine.
+**MG-TOOLS** est une application tout-en-un conçue pour les passionnés de médias. Elle centralise le téléchargement de vidéos (YouTube), la gestion de torrents (Deluge/Prowlarr) et le suivi de vos séries (TMDB) dans une interface moderne, fluide et sécurisée.
+
+> 🔒 **Confidentialité avant tout** : Vos données restent chez vous. Clés API chiffrées localement, aucun cloud tiers.
 
 ## 📸 Aperçu
 
-| Accueil | Séries & Prowlarr |
+| Accueil | YouTube Downloader |
 |:---:|:---:|
-| ![Accueil](docs/assets/accueil.png) | ![Prowlarr](docs/assets/prowlarr.png) |
-| **Interface Moderne** | **Recherche Centralisée** |
+| ![Accueil](docs/assets/accueil.png) | *Interface de téléchargement avec gestion de playlists* |
 
-| Notifications | Sidebar |
+| Recherche Prowlarr | Notifications |
 |:---:|:---:|
-| ![Notifications](docs/assets/notifi.png) | ![Navigation](docs/assets/sidebar.png) |
+| ![Prowlarr](docs/assets/prowlarr.png) | ![Notifications](docs/assets/notifi.png) |
 
-## ✨ Fonctionnalités
+## ✨ Fonctionnalités Principales
 
-### 📺 Gestion de Séries (TMDB)
-- **Suivi centralisé** : Ajoutez vos séries favorites et suivez leur progression.
-- **Mises à jour en temps réel** : Détection automatique des changements de statut (En cours, Terminée, Annulée).
-- **Notifications** : Soyez alerté dès qu'une série change de statut ou qu'un nouvel épisode est annoncé.
-- **Informations détaillées** : Synopsis, casting, notes, dates de diffusion.
+### 🎥 YouTube Downloader (v2.0)
+L'outil ultime pour récupérer vos contenus favoris.
+- **Formats Multiples** : Téléchargez en **MP3** (audio haute qualité) ou **MP4** (vidéo jusqu'à 4K).
+- **Playlists Intelligentes** : Téléchargez des playlists entières avec une barre de progression détaillée (ex: "Item 1/50").
+- **Métadonnées Complètes** : Intégration automatique des pochettes, titres et artistes.
+- **Historique & Annulation** : Suivez vos téléchargements et annulez-les proprement à tout moment (processus nettoyés automatiquement).
 
-### 🔍 Intégration Prowlarr
-- **Recherche unifiée** : Recherchez du contenu sur tous vos indexeurs configurés via une interface unique.
-- **Gestion simplifiée** : Visualisez l'état de vos indexeurs directement depuis l'application.
+### 🌊 Gestion Torrent (Deluge & Prowlarr)
+Prenez le contrôle de vos téléchargements P2P.
+- **Recherche Unifiée (Prowlarr)** : Cherchez sur tous vos trackers simultanément.
+- **Téléchargement Local** :
+  - Sauvegardez les fichiers `.torrent` directement sur votre PC.
+  - Récupérez les fichiers téléchargés par Deluge directement sur votre machine locale.
+- **Accès Rapide** : Liens directs vers les interfaces Web de vos outils.
 
-### 🛡️ Sécurité & Confidentialité
-- **100% Local** : Aucune donnée n'est envoyée sur le cloud. Votre bibliothèque reste chez vous.
-- **Chiffrement fort** : Les clés API (TMDB, Prowlarr) sont chiffrées via l'API SafeStorage d'Electron avant d'être stockées sur le disque.
-- **Open Source** : Code transparent et vérifiable.
+### 📺 Suivi de Séries (TMDB)
+Ne ratez plus jamais un épisode.
+- **Suivi Automatique** : Statuts "En cours", "Terminée", "Annulée" mis à jour en temps réel.
+- **Infos Détaillées** : Casting, synopsis, dates de diffusion et notes.
+- **Alertes** : Notifications natives pour les nouveaux épisodes ou changements de statut.
 
-### 🚀 Autres Atouts
-- **Mises à jour automatiques** : Système intégré via GitHub Releases.
-- **Interface sombre/moderne** : Design soigné utilisant Tailwind CSS et Framer Motion.
-- **Léger & Rapide** : Construit sur Electron + Vite + React.
+### �️ Sécurité & Architecture
+- **Stockage Local** : Toutes vos configurations (clés API, préférences) sont stockées en local.
+- **Chiffrement** : Utilisation de l'API SafeStorage d'Electron pour protéger vos identifiants.
+- **Moderne** : Construit avec Electron, React, Vite et TailwindCSS pour des performances maximales.
 
-## 🗺️ Roadmap (Ce qui devrait arriver)
+## 📥 Installation
 
-Voici les fonctionnalités prévues pour les futures mises à jour :
+### Windows
+La méthode recommandée est d'utiliser l'installeur Web qui télécharge automatiquement les composants nécessaires.
+1. Téléchargez `MG-Tools-Setup-x.x.x.exe` depuis les [Releases](https://github.com/MoowGlax/MG-TOOLS/releases).
+2. Lancez l'installation.
+3. Profitez !
 
+### macOS
+1. Téléchargez le fichier `.dmg` depuis les [Releases](https://github.com/MoowGlax/MG-TOOLS/releases).
+2. Glissez l'application dans votre dossier `Applications`.
+3. **Important** : Si vous avez une erreur "endommagé" ou "développeur non identifié", ouvrez le Terminal et lancez :
+   ```bash
+   sudo xattr -r -d com.apple.quarantine "/Applications/MG Tools.app"
+   ```
+
+## 🗺️ Roadmap
+
+- [x] **YouTube Downloader** : Support complet MP3/MP4 et Playlists.
+- [x] **Intégration Deluge/Prowlarr** : Recherche et téléchargement local.
+- [x] **Support macOS** : Build universel et corrections d'interface (Tray).
 - [ ] **STRM Maker** : Création facilitée de fichiers .strm.
-- [x] **Support macOS (partiel)** : Build disponible, fonctionnalités en cours de stabilisation.
-- [ ] **Modules externes** : Possibilité de créer et d'ajouter des plugins communautaires.
-- [ ] **Accès rapide (Quick Links)** : Page personnalisable avec vos liens et raccourcis (images custom).
-- [ ] **Backup & Restauration** : Sauvegarde complète de la configuration et des données.
-- [ ] **Multilingue** : Support de plusieurs langues pour l'interface.
-- [ ] **Module SSH & Synology** : Gestion à distance et intégration potentielle d'outils SSH.
-- [ ] **Détails TMDB dans Prowlarr** : Vue enrichie (infos films/séries) directement dans les résultats de recherche.
-- [x] **YouTube Downloader (MP3/MP4 + playlists)** : Disponible (bêta).
-- [ ] **Vos idées ?** : La communauté décide des prochaines évolutions !
+- [ ] **Modules externes** : Système de plugins.
+- [ ] **Dashboard Personnalisable** : Widgets et raccourcis sur l'accueil.
+- [ ] **Backup Cloud (Optionnel)** : Sauvegarde chiffrée de la configuration.
 
-## 🛠️ Installation & Développement
+## 🛠️ Développement
 
-### Structure du Projet
-
-- `src/`: Code source Frontend (React + Vite)
-- `electron/`: Code source Backend (Electron)
-  - `main/`: Processus principal
-  - `preload/`: Scripts de préchargement
-  - `services/`: Services métier (YouTube, Stockage, Sécurité)
-- `docs/`: Documentation et assets
-- `scripts/`: Scripts utilitaires (installation, build)
-- `public/`: Assets statiques
+Envie de contribuer ? Voici comment lancer le projet localement.
 
 ### Prérequis
 - Node.js (v18+)
-- NPM ou Yarn
+- FFmpeg (pour le traitement YouTube)
 
-### Installation
-
-**macOS (Notes de sécurité) :**
-Si vous rencontrez une erreur "endommagé" ou "développeur non identifié", exécutez cette commande dans le Terminal après avoir déplacé l'application dans `/Applications` :
-```bash
-sudo xattr -r -d com.apple.quarantine "/Applications/MG Tools.app"
-```
-
-**Windows (Automatique) :**
-Exécutez `scripts/setup-dev.bat`.
-
-**Manuel :**
+### Démarrage Rapide
 
 ```bash
-# Cloner le dépôt
+# 1. Cloner le projet
 git clone https://github.com/MoowGlax/MG-TOOLS.git
-
-# Installer les dépendances
 cd MG-TOOLS
+
+# 2. Installer les dépendances
 npm install
 
-# Lancer en mode développement
+# 3. Lancer en mode développement
 npm run dev
 ```
 
-### Construction (Build)
+### Build
 
 ```bash
-# Créer l'exécutable pour Windows
+# Windows
 npm run build:win
+
+# macOS
+npm run build:mac
 ```
 
-## 💬 Rejoindre la communauté
+## 💬 Communauté
 
-Besoin d'aide, une suggestion ou simplement envie de discuter ? Rejoignez le serveur Discord officiel :
+Besoin d'aide ou envie de proposer une fonctionnalité ?
 
 [![Discord Banner](https://invidget.switchblade.xyz/XZE3jyS4ms)](https://discord.gg/XZE3jyS4ms)
 
-## 📝 Crédits
+---
 
-Développé par [MoowGlax](https://github.com/MoowGlax).
-
-Licence MIT.
+<div align="center">
+  Développé avec ❤️ par <a href="https://github.com/MoowGlax">MoowGlax</a>
+  <br>
+  Licence MIT
+</div>
