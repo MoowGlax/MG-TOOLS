@@ -278,7 +278,7 @@ ipcMain.handle('youtube:download', async (event, url, options, id?: string) => {
                     downloaded: undefined 
                 });
             }
-        });
+        }, id);
         
         // If successful, update status to completed in DownloadManager
         if (id) {
