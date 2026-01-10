@@ -41,5 +41,40 @@ export const StorageService = {
       console.error('Failed to retrieve data:', error);
       return null;
     }
+  },
+
+  getAllData: (): Record<string, any> => {
+      try {
+          const dataPath = getDataPath();
+          if (!fs.existsSync(dataPath)) return {};
+          return JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+      } catch (error) {
+          console.error('Failed to get all data:', error);
+          return {};
+      }
+  },
+
+  setAllData: (data: Record<string, any>): boolean => {
+      try {
+          const dataPath = getDataPath();
+          fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+          return true;
+      } catch (error) {
+          console.error('Failed to set all data:', error);
+          return false;
+      }
+  },
+
+  clear: (): boolean => {
+      try {
+          const dataPath = getDataPath();
+          if (fs.existsSync(dataPath)) {
+              fs.unlinkSync(dataPath);
+          }
+          return true;
+      } catch (error) {
+          console.error('Failed to clear storage:', error);
+          return false;
+      }
   }
 };

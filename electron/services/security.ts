@@ -62,5 +62,67 @@ export const SecurityService = {
 
       return null;
     }
+  },
+
+  getAllCredentials: (decrypt: boolean = true): Record<string, string> => {
+      if (!safeStorage.isEncryptionAvailable()) return {};
+      
+      try {
+          if (!fs.existsSync(DATA_PATH)) return {};
+          const data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf-8'));
+          
+          if (!decrypt) {
+              return data;
+          }
+
+          const decrypted: Record<string, string> = {};
+          
+          for (const [key, value] of Object.entries(data)) {
+              try {
+                  const buffer = Buffer.from(value as string, 'base64');
+                  decrypted[key] = safeStorage.decryptString(buffer);
+              } catch (e) {
+                  console.warn(`Failed to decrypt ${key} during export`);
+              }
+          }
+          return decrypted;
+      } catch (error) {
+          console.error('Failed to get all credentials:', error);
+          return {};
+      }
+  },
+
+  setAllCredentials: (credentials: Record<string, string>, isRaw: boolean = false): boolean => {
+      if (!safeStorage.isEncryptionAvailable()) return false;
+
+      try {
+          if (isRaw) {
+              fs.writeFileSync(DATA_PATH, JSON.stringify(credentials));
+              return true;
+          }
+
+          const encrypted: Record<string, string> = {};
+          for (const [key, value] of Object.entries(credentials)) {
+              const enc = safeStorage.encryptString(value);
+              encrypted[key] = enc.toString('base64');
+          }
+          fs.writeFileSync(DATA_PATH, JSON.stringify(encrypted));
+          return true;
+      } catch (error) {
+          console.error('Failed to set all credentials:', error);
+          return false;
+      }
+  },
+
+  clear: (): boolean => {
+      try {
+          if (fs.existsSync(DATA_PATH)) {
+              fs.unlinkSync(DATA_PATH);
+          }
+          return true;
+      } catch (error) {
+          console.error('Failed to clear credentials:', error);
+          return false;
+      }
   }
 };

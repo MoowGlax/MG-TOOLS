@@ -23,6 +23,10 @@ if (process.env.VITE_DEV_SERVER_URL) {
     autoUpdater.forceDevUpdateConfig = true;
 }
 
+// Disable cache to prevent locking issues on Windows
+app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+
 // Set App ID for Windows Notifications
 app.setAppUserModelId('MG Tools');
 
@@ -194,7 +198,81 @@ app.on('ready', () => {
     return StorageService.getData(key);
   });
 
-  // Update Handlers
+  // Advanced Settings Handlers
+  ipcMain.handle('app:open-user-data', () => {
+      shell.openPath(app.getPath('userData'));
+  });
+
+  ipcMain.handle('app:reset-config', async () => {
+      const storageSuccess = StorageService.clear();
+      const securitySuccess = SecurityService.clear();
+      // Relaunch app to apply changes cleanly
+      app.relaunch();
+      app.exit(0);
+      return storageSuccess && securitySuccess;
+  });
+
+  ipcMain.handle('app:export-config', async (_event, mode: 'clear' | 'encrypted' = 'clear') => {
+      const { canceled, filePath } = await dialog.showSaveDialog(mainWindow!, {
+          title: mode === 'encrypted' ? 'Exporter la configuration (Chiffrée Local)' : 'Exporter la configuration (Portable)',
+          defaultPath: mode === 'encrypted' ? 'mg-tools-config-secure.json' : 'mg-tools-config.json',
+          filters: [{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (canceled || !filePath) return false;
+
+      const appData = StorageService.getAllData();
+      // If mode is encrypted, we get raw credentials (encrypted by system)
+      // If mode is clear, we get decrypted credentials
+      const secureData = SecurityService.getAllCredentials(mode === 'clear');
+
+      const exportData = {
+          version: app.getVersion(),
+          timestamp: new Date().toISOString(),
+          securityMode: mode, // 'clear' or 'encrypted'
+          appData,
+          secureData
+      };
+
+      try {
+          fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2));
+          return true;
+      } catch (e) {
+          console.error('Export failed:', e);
+          return false;
+      }
+  });
+
+  ipcMain.handle('app:import-config', async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow!, {
+          title: 'Importer une configuration',
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          properties: ['openFile']
+      });
+
+      if (canceled || filePaths.length === 0) return false;
+
+      try {
+          const content = fs.readFileSync(filePaths[0], 'utf-8');
+          const data = JSON.parse(content);
+
+          // Check security mode
+          const isRaw = data.securityMode === 'encrypted';
+
+          if (data.appData) StorageService.setAllData(data.appData);
+          if (data.secureData) SecurityService.setAllCredentials(data.secureData, isRaw);
+          
+          // Relaunch to apply
+          app.relaunch();
+          app.exit(0);
+          return true;
+      } catch (e) {
+          console.error('Import failed:', e);
+          return false;
+      }
+  });
+
+  // Proxy Request Handlers
   ipcMain.handle('check-for-updates', async () => {
     try {
         const result = await autoUpdater.checkForUpdates();

@@ -61,8 +61,29 @@ export function SshManager() {
 
     const loadProfiles = async () => {
         try {
-            const saved = await window.electronAPI.getData('ssh_profiles') as SshProfile[];
-            if (saved) setProfiles(saved);
+            // Try to load encrypted profiles first
+            const encrypted = await window.electronAPI.getCredentials('ssh_profiles');
+            if (encrypted) {
+                try {
+                    const parsed = JSON.parse(encrypted);
+                    setProfiles(parsed);
+                    return;
+                } catch (e) {
+                    console.error('Failed to parse encrypted SSH profiles', e);
+                }
+            }
+
+            // Fallback: Check for legacy unencrypted profiles (migration)
+            const legacy = await window.electronAPI.getData('ssh_profiles') as SshProfile[];
+            if (legacy && Array.isArray(legacy) && legacy.length > 0) {
+                console.log('Migrating SSH profiles to encrypted storage...');
+                // Migrate to encrypted storage
+                await window.electronAPI.saveCredentials('ssh_profiles', JSON.stringify(legacy));
+                // We don't delete legacy data automatically to be safe, or we could overwrite it with empty
+                // await window.electronAPI.saveData('ssh_profiles', null); 
+                setProfiles(legacy);
+                toast.success('Profils SSH migrés vers le stockage sécurisé');
+            }
         } catch (e) {
             console.error('Failed to load SSH profiles', e);
         }
@@ -70,7 +91,8 @@ export function SshManager() {
 
     const saveProfiles = async (newProfiles: SshProfile[]) => {
         setProfiles(newProfiles);
-        await window.electronAPI.saveData('ssh_profiles', newProfiles);
+        // Always save encrypted
+        await window.electronAPI.saveCredentials('ssh_profiles', JSON.stringify(newProfiles));
     };
 
     const handleSaveProfile = async () => {

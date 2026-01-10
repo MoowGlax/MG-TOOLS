@@ -7,6 +7,13 @@ interface IElectronAPI {
   getCredentials: (key: string) => Promise<string | null>;
   saveData: (key: string, value: unknown) => Promise<boolean>;
   getData: (key: string) => Promise<unknown>;
+  
+  // Advanced Settings
+  openUserData: () => Promise<void>;
+  resetConfig: () => Promise<boolean>;
+  exportConfig: (mode?: 'clear' | 'encrypted') => Promise<boolean>;
+  importConfig: () => Promise<boolean>;
+
   proxyRequest: (url: string, options: RequestInit & { timeout?: number }) => Promise<{ ok: boolean; status: number; data: unknown; headers?: Record<string, string>; error?: string }>;
   openExternal: (url: string) => Promise<void>;
   downloadFile: (url: string, filename: string, id: string, options?: any) => Promise<{ success: boolean; path?: string; error?: string }>;

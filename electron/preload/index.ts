@@ -7,6 +7,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCredentials: (key: string) => ipcRenderer.invoke('get-credentials', key),
   saveData: (key: string, value: any) => ipcRenderer.invoke('save-data', key, value),
   getData: (key: string) => ipcRenderer.invoke('get-data', key),
+  
+  // Advanced Settings
+  openUserData: () => ipcRenderer.invoke('app:open-user-data'),
+  resetConfig: () => ipcRenderer.invoke('app:reset-config'),
+  exportConfig: (mode?: 'clear' | 'encrypted') => ipcRenderer.invoke('app:export-config', mode),
+  importConfig: () => ipcRenderer.invoke('app:import-config'),
+
   proxyRequest: (url: string, options: RequestInit) => ipcRenderer.invoke('proxy-request', url, options),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   downloadFile: (url: string, filename: string, id: string, options?: any) => ipcRenderer.invoke('download-file', url, filename, id, options),

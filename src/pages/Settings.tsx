@@ -6,6 +6,9 @@ import { ProwlarrService } from '../services/prowlarr';
 import { TmdbService } from '../services/tmdb';
 import { SynologyService } from '../services/synology';
 import { NotificationsService } from '../services/notifications';
+import { toast } from 'sonner';
+
+import { confirmAction } from '../utils/confirm';
 
 export function Settings() {
   const location = useLocation();
@@ -15,6 +18,7 @@ export function Settings() {
     synology: false,
     tmdb: false,
     notifications: false,
+    advanced: false,
     sidebar: false,
   });
 
@@ -40,9 +44,167 @@ export function Settings() {
         <SynologySettings isOpen={openSections.synology} onToggle={() => toggleSection('synology')} />
         <TmdbSettings isOpen={openSections.tmdb} onToggle={() => toggleSection('tmdb')} />
         <NotificationSettings isOpen={openSections.notifications} onToggle={() => toggleSection('notifications')} />
+        <AdvancedSettings isOpen={openSections.advanced} onToggle={() => toggleSection('advanced')} />
       </div>
     </div>
   );
+}
+
+function AdvancedSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+    const handleOpenUserData = async () => {
+        await window.electronAPI.openUserData();
+    };
+
+    const handleReset = async () => {
+        if (await confirmAction('Êtes-vous sûr de vouloir tout réinitialiser ? Cette action est irréversible.')) {
+            const success = await window.electronAPI.resetConfig();
+            if (!success) toast.error("Erreur lors de la réinitialisation");
+        }
+    };
+
+    const handleExport = async () => {
+        toast.custom((t) => (
+            <div className="flex flex-col gap-4 w-full bg-background border border-border rounded-lg p-4 shadow-lg max-w-md">
+                <div className="flex flex-col gap-1">
+                    <h3 className="font-semibold text-base">Format d'exportation</h3>
+                    <p className="text-sm text-muted-foreground">Choisissez le type de sauvegarde :</p>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-amber-600 dark:text-amber-500 font-medium text-sm">⚠️ Clair (Portable)</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Les mots de passe sont lisibles. Restaurable sur <span className="font-medium">n'importe quel PC</span>.
+                            <br/><span className="text-destructive font-medium">À conserver en lieu sûr !</span>
+                        </p>
+                    </div>
+
+                    <div className="p-3 rounded-md bg-primary/10 border border-primary/20 space-y-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-primary font-medium text-sm">🔒 Chiffré (Ce PC)</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Sécurisé avec la clé système. Restaurable <span className="font-medium">UNIQUEMENT sur ce PC</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 justify-end pt-2">
+                    <button
+                        onClick={() => toast.dismiss(t)}
+                        className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t);
+                            const success = await window.electronAPI.exportConfig('clear');
+                            if (success) toast.success('Configuration exportée (Portable)');
+                            else toast.error("Échec de l'exportation");
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
+                    >
+                        Portable
+                    </button>
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t);
+                            const success = await window.electronAPI.exportConfig('encrypted');
+                            if (success) toast.success('Configuration exportée (Sécurisée)');
+                            else toast.error("Échec de l'exportation");
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                    >
+                        Sécurisé (Recommandé)
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: Infinity,
+        });
+    };
+
+    const handleImport = async () => {
+        if (await confirmAction('Importer une configuration écrasera les données actuelles. Continuer ?')) {
+            const success = await window.electronAPI.importConfig();
+            if (success) toast.success('Configuration importée avec succès');
+            else toast.error("Échec de l'importation");
+        }
+    };
+
+    return (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div 
+                className="flex items-center justify-between p-6 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={onToggle}
+            >
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                        <Database className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold">Avancé</h2>
+                        <p className="text-sm text-muted-foreground">Gestion des données et configuration</p>
+                    </div>
+                </div>
+                {isOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+            </div>
+
+            {isOpen && (
+                <div className="p-6 border-t space-y-6">
+                    <div className="space-y-4">
+                        <h3 className="font-medium">Données de l'application</h3>
+                        <div className="flex flex-col gap-2">
+                            <button 
+                                onClick={handleOpenUserData}
+                                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+                            >
+                                <ExternalLink className="h-4 w-4" />
+                                Ouvrir le dossier de données (AppData)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="font-medium">Sauvegarde et Restauration</h3>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+                            >
+                                <Download className="h-4 w-4" />
+                                Exporter la configuration
+                            </button>
+                            <button
+                                onClick={handleImport}
+                                className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+                            >
+                                <LayoutTemplate className="h-4 w-4" />
+                                Importer une configuration
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                        <h3 className="font-medium text-destructive mb-4">Zone de danger</h3>
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            <AlertCircle className="h-4 w-4" />
+                            Réinitialiser l'application
+                        </button>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            Cette action effacera toutes les données et préférences de l'application.
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 function SidebarSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
