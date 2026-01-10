@@ -10,7 +10,7 @@ import log from 'electron-log';
 // Configure logging
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
-autoUpdater.disableWebInstaller = true;
+autoUpdater.disableWebInstaller = false;
 autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = true;
 
