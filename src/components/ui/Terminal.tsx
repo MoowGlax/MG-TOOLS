@@ -148,7 +148,8 @@ export function Terminal({ config }: TerminalProps) {
             removeDataListener();
             removeStatusListener();
             removeErrorListener();
-            window.electronAPI.ssh.disconnect();
+            // Don't disconnect on unmount to keep session alive across page navigation
+            // window.electronAPI.ssh.disconnect();
             term.dispose();
         };
     }, [config]);

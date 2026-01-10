@@ -5,34 +5,73 @@ export class SshService {
   private client: Client | null = null;
   private stream: ClientChannel | null = null;
   private window: BrowserWindow | null = null;
+  private historyBuffer: string = '';
+  private currentHost: string | null = null;
+  private connectionState: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
 
   constructor(window: BrowserWindow) {
     this.window = window;
   }
 
+  // Check if connected to the requested host
+  isConnected(host: string): boolean {
+      return this.connectionState === 'connected' && this.currentHost === host;
+  }
+
+  // Re-emit history to the renderer
+  reattach() {
+      if (this.historyBuffer && this.window) {
+          this.window.webContents.send('ssh:data', this.historyBuffer);
+      }
+      if (this.isConnected(this.currentHost || '')) {
+          this.window?.webContents.send('ssh:status', 'connected');
+      }
+  }
+
   connect(config: { host: string; port: number; username: string; password?: string; privateKey?: string }) {
+    // If already connected or connecting to the same host
+    if (this.currentHost === config.host) {
+        if (this.connectionState === 'connected') {
+            this.reattach();
+            return;
+        }
+        if (this.connectionState === 'connecting') {
+            return; // Already connecting, let it finish
+        }
+    }
+
     if (this.client) {
         this.disconnect();
     }
 
+    this.currentHost = config.host;
+    this.connectionState = 'connecting';
+    this.historyBuffer = ''; // Reset buffer on new connection
     this.client = new Client();
 
     this.client.on('ready', () => {
+      this.connectionState = 'connected';
       this.window?.webContents.send('ssh:status', 'connected');
       
       this.client?.shell((err, stream) => {
         if (err) {
             this.window?.webContents.send('ssh:error', 'Failed to start shell: ' + err.message);
+            this.disconnect();
             return;
         }
         
         this.stream = stream;
         
         stream.on('close', () => {
-          this.client?.end();
-          this.window?.webContents.send('ssh:status', 'disconnected');
+          this.disconnect();
         }).on('data', (data: any) => {
-          this.window?.webContents.send('ssh:data', data.toString());
+          const str = data.toString();
+          // Keep last 100KB of history
+          this.historyBuffer += str;
+          if (this.historyBuffer.length > 100000) {
+              this.historyBuffer = this.historyBuffer.substring(this.historyBuffer.length - 100000);
+          }
+          this.window?.webContents.send('ssh:data', str);
         });
       });
     });
@@ -46,14 +85,17 @@ export class SshService {
         console.error('SSH Client Error:', err);
         this.window?.webContents.send('ssh:error', err.message);
         this.window?.webContents.send('ssh:status', 'disconnected');
+        this.currentHost = null;
     });
 
     this.client.on('end', () => {
         this.window?.webContents.send('ssh:status', 'disconnected');
+        this.currentHost = null;
     });
     
     this.client.on('close', () => {
         this.window?.webContents.send('ssh:status', 'disconnected');
+        this.currentHost = null;
     });
 
     this.client.on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => {
@@ -114,11 +156,19 @@ export class SshService {
     }
   }
 
+  private cleanup() {
+      this.client = null;
+      this.stream = null;
+      this.currentHost = null;
+      this.connectionState = 'disconnected';
+  }
+
   disconnect() {
     if (this.client) {
       this.client.end();
-      this.client = null;
-      this.stream = null;
+      // 'close' event will handle cleanup and notification
+    } else {
+        this.cleanup();
     }
   }
 }
