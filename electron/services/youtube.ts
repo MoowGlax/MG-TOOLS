@@ -177,25 +177,45 @@ export class YoutubeService {
         console.log('[YoutubeService] Cancel requested for:', id);
         
         const cancelProcess = (pid: number, reject: (err: Error) => void) => {
-             // Immediately reject the promise to update UI
-            reject(new Error('Téléchargement annulé par l\'utilisateur'));
+                 // Immediately reject the promise to update UI
+                reject(new Error('Téléchargement annulé par l\'utilisateur'));
 
-            console.log('[YoutubeService] Killing PID:', pid);
-            
-            if (process.platform === 'win32' && pid) {
-                try {
-                    require('child_process').execSync(`taskkill /pid ${pid} /f /t`);
-                } catch (e: any) {
-                    console.error('[YoutubeService] Error killing process with taskkill:', e.message);
+                console.log('[YoutubeService] Killing PID:', pid);
+                
+                if (process.platform === 'win32') {
+                    if (pid) {
+                        try {
+                            require('child_process').execSync(`taskkill /pid ${pid} /f /t`);
+                        } catch (e: any) {
+                            console.error('[YoutubeService] Error killing process with taskkill:', e.message);
+                        }
+                    }
+                } else {
+                    // macOS / Linux
+                    if (pid) {
+                        try {
+                            // Kill the process aggressively
+                            process.kill(pid, 'SIGKILL');
+                            
+                            // Also try to kill any children manually just in case
+                            // This uses pkill -P (parent pid) to find children
+                            try {
+                                require('child_process').execSync(`pkill -P ${pid}`);
+                            } catch (e) {
+                                // Ignore if no children found or command missing
+                            }
+                        } catch (e: any) {
+                            console.error('[YoutubeService] Error killing process:', e.message);
+                            // Fallback to system kill command if node process.kill fails
+                            try {
+                                require('child_process').execSync(`kill -9 ${pid}`);
+                            } catch (e2) { 
+                                // Ignore
+                            }
+                        }
+                    }
                 }
-            }
-            
-            try {
-                process.kill(pid, 'SIGKILL');
-            } catch (e: any) {
-                // Ignore if already dead
-            }
-        };
+            };
 
         if (id) {
             const data = YoutubeService.processes.get(id);
