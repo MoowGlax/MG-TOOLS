@@ -200,6 +200,8 @@ app.on('ready', () => {
   });
 
   ipcMain.handle('quit-and-install', () => {
+    log.info('User requested quit and install...');
+    isQuitting = true;
     autoUpdater.quitAndInstall();
   });
 
