@@ -21,6 +21,7 @@ interface IElectronAPI {
   removeUpdateListeners: () => void;
 
   notify: (title: string, body: string) => Promise<void>;
+  log: (level: 'info' | 'warn' | 'error', message: string) => Promise<void>;
 
   // Youtube API
   youtube: {
@@ -32,6 +33,13 @@ interface IElectronAPI {
       openDownloads: () => Promise<string>;
       onBinaryProgress: (callback: (status: string) => void) => () => void;
       onDownloadProgress: (callback: (data: ProgressData) => void) => () => void;
+  };
+
+  // Synology API
+  synology: {
+      login: (url: string, user: string, pass: string) => Promise<boolean>;
+      getSystemData: () => Promise<any>;
+      executeAction: (action: 'reboot' | 'shutdown') => Promise<boolean>;
   };
 }
 

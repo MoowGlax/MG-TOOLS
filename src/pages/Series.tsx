@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, X, Loader2, Trash2, Clapperboard, Calendar, Settings, Star, RefreshCw, Info, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirmAction } from '../utils/confirm';
 import { useNavigate } from 'react-router-dom';
 import { TmdbService } from '../services/tmdb';
 import type { TMDBShow, TMDBDetails } from '../services/tmdb';
@@ -73,7 +74,7 @@ export function Series() {
   }, []);
 
   const handleRemove = async (id: number, name: string) => {
-    if (confirm(`Supprimer ${name} des favoris ?`)) {
+    if (await confirmAction(`Supprimer ${name} des favoris ?`)) {
       await SeriesService.removeFavorite(id);
       setFavorites(prev => prev.filter(s => s.id !== id));
       toast.success(`${name} retiré des favoris`);

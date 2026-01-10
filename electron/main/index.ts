@@ -5,6 +5,7 @@ import { SecurityService } from '../services/security';
 import { StorageService } from '../services/storage';
 import { BinariesManager } from '../services/binaries';
 import { YoutubeService } from '../services/youtube';
+import { synologyService } from '../services/synology';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
@@ -203,6 +204,12 @@ app.on('ready', () => {
     log.info('User requested quit and install...');
     isQuitting = true;
     autoUpdater.quitAndInstall();
+  });
+
+  ipcMain.handle('log', (_, level, message) => {
+    if (level === 'error') log.error(message);
+    else if (level === 'warn') log.warn(message);
+    else log.info(message);
   });
 
   // Auto-updater events
@@ -425,6 +432,18 @@ ipcMain.handle('download-file', async (_event, url: string, fileName: string, id
             console.error('Copy file error:', error);
             return { success: false, error: error.message };
         }
+    });
+
+    ipcMain.handle('synology:login', async (_, url, user, password) => {
+        return synologyService.login(url, user, password);
+    });
+
+    ipcMain.handle('synology:get-system-data', async () => {
+        return synologyService.getSystemData();
+    });
+
+    ipcMain.handle('synology:execute-action', async (_, action) => {
+        return synologyService.executeAction(action);
     });
 
 app.on('window-all-closed', () => {

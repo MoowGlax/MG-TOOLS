@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Save, Check, AlertCircle, Loader2, Download, Database, ChevronDown, ChevronRight, Bell, Clapperboard, MessageSquare, ExternalLink, ArrowUp, ArrowDown, Eye, EyeOff, LayoutTemplate } from 'lucide-react';
+import { Save, Check, AlertCircle, Loader2, Download, Database, ChevronDown, ChevronRight, Bell, Clapperboard, MessageSquare, ExternalLink, ArrowUp, ArrowDown, Eye, EyeOff, LayoutTemplate, Server } from 'lucide-react';
 import { DelugeService } from '../services/deluge';
 import { ProwlarrService } from '../services/prowlarr';
 import { TmdbService } from '../services/tmdb';
+import { SynologyService } from '../services/synology';
 import { NotificationsService } from '../services/notifications';
 
 export function Settings() {
@@ -11,6 +12,7 @@ export function Settings() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     deluge: false,
     prowlarr: false,
+    synology: false,
     tmdb: false,
     notifications: false,
     sidebar: false,
@@ -35,6 +37,7 @@ export function Settings() {
         <SidebarSettings isOpen={openSections.sidebar} onToggle={() => toggleSection('sidebar')} />
         <DelugeSettings isOpen={openSections.deluge} onToggle={() => toggleSection('deluge')} />
         <ProwlarrSettings isOpen={openSections.prowlarr} onToggle={() => toggleSection('prowlarr')} />
+        <SynologySettings isOpen={openSections.synology} onToggle={() => toggleSection('synology')} />
         <TmdbSettings isOpen={openSections.tmdb} onToggle={() => toggleSection('tmdb')} />
         <NotificationSettings isOpen={openSections.notifications} onToggle={() => toggleSection('notifications')} />
       </div>
@@ -52,9 +55,10 @@ function SidebarSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =
       'deluge': 'Deluge',
       'prowlarr': 'Prowlarr',
       'series': 'Séries',
+      'synology': 'Synology',
       'settings': 'Paramètres'
   };
-  const DEFAULT_ORDER = ['home', 'deluge', 'prowlarr', 'series', 'settings'];
+  const DEFAULT_ORDER = ['home', 'deluge', 'prowlarr', 'series', 'synology', 'settings'];
 
   useEffect(() => {
       if (isOpen) {
@@ -562,6 +566,171 @@ function ProwlarrSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
       </div>
     </div>
   );
+}
+
+function SynologySettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+    const [url, setUrl] = useState('');
+    const [user, setUser] = useState('');
+    const [password, setPassword] = useState('');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [message, setMessage] = useState('');
+    const [isConnected, setIsConnected] = useState(false);
+  
+    useEffect(() => {
+      const load = async () => {
+        const savedUrl = await window.electronAPI.getCredentials('synology_url');
+        const savedUser = await window.electronAPI.getCredentials('synology_user');
+        const savedPass = await window.electronAPI.getCredentials('synology_password');
+        
+        if (savedUrl) setUrl(savedUrl);
+        if (savedUser) setUser(savedUser);
+        if (savedPass) setPassword(savedPass);
+        
+        if (savedUrl && savedUser && savedPass) setIsConnected(true);
+      };
+      load();
+    }, []);
+  
+    const handleTestAndSave = async () => {
+      setStatus('loading');
+      setMessage('');
+      try {
+          let targetUrl = url.trim();
+          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+              targetUrl = `http://${targetUrl}`;
+          }
+  
+          const success = await SynologyService.login(targetUrl, user, password);
+          
+          if (success) {
+              setUrl(targetUrl);
+              await window.electronAPI.saveCredentials('synology_url', targetUrl);
+              await window.electronAPI.saveCredentials('synology_user', user);
+              await window.electronAPI.saveCredentials('synology_password', password);
+              setStatus('success');
+              setMessage('Connexion réussie et configuration sauvegardée');
+              setIsConnected(true);
+          } else {
+              setStatus('error');
+              setMessage('Échec de la connexion au NAS');
+              setIsConnected(false);
+          }
+      } catch (err) {
+        setStatus('error');
+        setMessage('Erreur lors du test de connexion');
+        setIsConnected(false);
+      }
+    };
+  
+    if (!isOpen) {
+      return (
+        <div 
+          onClick={onToggle}
+          className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm hover:bg-accent/50 cursor-pointer transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Server className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Synology NAS</h2>
+              <p className="text-sm text-muted-foreground">Monitoring et contrôle du NAS</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+              {isConnected ? (
+                  <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
+                      <Check className="h-4 w-4" /> Configuré
+                  </div>
+              ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      Non configuré
+                  </div>
+              )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden transition-all">
+        <div 
+          onClick={onToggle}
+          className="flex items-center justify-between p-4 border-b bg-muted/30 cursor-pointer hover:bg-muted/50"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Server className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Synology NAS</h2>
+              <p className="text-sm text-muted-foreground">Configuration de l'accès API (DSM 6/7)</p>
+            </div>
+          </div>
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+        </div>
+  
+        <div className="p-6 space-y-4">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">URL du NAS</label>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="http://192.168.1.100:5000"
+            />
+          </div>
+          
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Nom d'utilisateur</label>
+            <input
+              type="text"
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="admin"
+            />
+          </div>
+  
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Mot de passe</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Votre mot de passe"
+            />
+          </div>
+  
+          {message && (
+            <div className={`flex items-center gap-2 rounded-md p-3 text-sm ${
+              status === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-destructive/10 text-destructive'
+            }`}>
+              {status === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+              {message}
+            </div>
+          )}
+  
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleTestAndSave}
+              disabled={status === 'loading'}
+              className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {status === 'loading' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Tester & Sauvegarder
+            </button>
+          </div>
+        </div>
+      </div>
+    );
 }
 
 function TmdbSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {

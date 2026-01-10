@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Upload, Play, Pause, Trash2, Plus, AlertCircle, HardDrive, File as FileIcon, X, FolderOpen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirmAction } from '../utils/confirm';
 import { DelugeService } from '../services/deluge';
 import type { DelugeTorrent, DelugeFile } from '../services/deluge';
 
@@ -72,7 +73,7 @@ export function Deluge() {
     if (action === 'pause') await DelugeService.pauseTorrent(id);
     if (action === 'resume') await DelugeService.resumeTorrent(id);
     if (action === 'remove') {
-      if (confirm('Voulez-vous vraiment supprimer ce torrent ?')) {
+      if (await confirmAction('Voulez-vous vraiment supprimer ce torrent ?')) {
         await DelugeService.removeTorrent(id);
       }
     }
@@ -80,7 +81,7 @@ export function Deluge() {
   };
 
   const handleRemoveCompleted = async () => {
-    if (confirm('Voulez-vous supprimer tous les torrents terminés (100%) ?')) {
+    if (await confirmAction('Voulez-vous supprimer tous les torrents terminés (100%) ?')) {
       const completedTorrents = torrents.filter(t => t.progress === 100);
       for (const t of completedTorrents) {
         await DelugeService.removeTorrent(t.id);

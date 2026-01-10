@@ -7,6 +7,8 @@ import type { ProwlarrStats, ProwlarrRelease } from '../services/prowlarr';
 import { DelugeService } from '../services/deluge';
 import { useApp } from '../contexts/AppContext';
 
+import { confirmAction } from '../utils/confirm';
+
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
   const k = 1024;
@@ -210,14 +212,19 @@ export function Prowlarr() {
         return;
     }
 
-    // Use ProwlarrService which now uses DownloadManager
-    await ProwlarrService.downloadLocal(link, release.title);
+    if (await confirmAction(`Télécharger "${release.title}" localement ?`)) {
+        await ProwlarrService.downloadLocal(link, release.title);
+    }
   };
 
   const handleDownload = async (release: ProwlarrRelease) => {
     const link = release.magnetUrl || release.downloadUrl;
     if (!link) {
         toast.error('Lien de téléchargement introuvable');
+        return;
+    }
+
+    if (!await confirmAction(`Ajouter "${release.title}" à Deluge ?`)) {
         return;
     }
 

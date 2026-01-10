@@ -5,6 +5,7 @@ import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Deluge } from './pages/Deluge';
 import { Prowlarr } from './pages/Prowlarr';
+import { Synology } from './pages/Synology';
 import { Settings } from './pages/Settings';
 import { Series } from './pages/Series';
 import YoutubeToMP3 from './pages/YoutubeToMP3';
@@ -34,6 +35,7 @@ function AnimatedRoutes() {
           <Route index element={<PageTransition><Home /></PageTransition>} />
           <Route path="deluge" element={<PageTransition><Deluge /></PageTransition>} />
           <Route path="prowlarr" element={<PageTransition><Prowlarr /></PageTransition>} />
+          <Route path="synology" element={<PageTransition><Synology /></PageTransition>} />
           <Route path="series" element={<PageTransition><Series /></PageTransition>} />
           <Route path="youtube" element={<PageTransition><YoutubeToMP3 /></PageTransition>} />
           <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />

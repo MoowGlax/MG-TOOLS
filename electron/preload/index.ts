@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
   notify: (title: string, body: string) => ipcRenderer.invoke('app:notify', title, body),
+  log: (level: string, message: string) => ipcRenderer.invoke('log', level, message),
   onUpdateStatus: (callback: (status: string, message?: string) => void) => {
       const wrapper = (_event: any, status: string, message?: string) => callback(status, message);
       ipcRenderer.on('update-status', wrapper);
@@ -54,5 +55,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
           ipcRenderer.on('youtube:download-progress', wrapper);
           return () => ipcRenderer.removeListener('youtube:download-progress', wrapper);
       }
+  },
+
+  // Synology API
+  synology: {
+      login: (url: string, user: string, pass: string) => ipcRenderer.invoke('synology:login', url, user, pass),
+      getSystemData: () => ipcRenderer.invoke('synology:get-system-data'),
+      executeAction: (action: string) => ipcRenderer.invoke('synology:execute-action', action),
   }
 });
