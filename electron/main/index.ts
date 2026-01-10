@@ -11,6 +11,13 @@ import log from 'electron-log';
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
 autoUpdater.disableWebInstaller = true;
+autoUpdater.autoDownload = true;
+autoUpdater.allowPrerelease = true;
+
+// Force dev update config if in development
+if (process.env.VITE_DEV_SERVER_URL) {
+    autoUpdater.forceDevUpdateConfig = true;
+}
 
 // Set App ID for Windows Notifications
 app.setAppUserModelId('MG Tools');
@@ -198,7 +205,7 @@ app.on('ready', () => {
     mainWindow?.webContents.send('update-status', 'error', err.message);
   });
   autoUpdater.on('download-progress', (progressObj) => {
-    mainWindow?.webContents.send('update-download-progress', progressObj.percent);
+    mainWindow?.webContents.send('update-progress', progressObj.percent);
   });
   autoUpdater.on('update-downloaded', (info) => {
     log.info('Update downloaded:', info);

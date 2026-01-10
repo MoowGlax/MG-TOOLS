@@ -5,6 +5,10 @@
   "main": "dist-electron/main/index.js",
   "description": "Outil Windows moderne et modulaire",
   "author": "MoowGlax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MoowGlax/MG-TOOLS.git"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
@@ -59,6 +63,13 @@
   "build": {
     "appId": "com.mgtools.app",
     "productName": "MG Tools",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MoowGlax",
+        "repo": "MG-TOOLS"
+      }
+    ],
     "directories": {
       "output": "release"
     },
