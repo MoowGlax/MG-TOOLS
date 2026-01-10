@@ -230,7 +230,7 @@ export function Synology() {
                     </button>
                 </div>
                 <div className="flex-1 p-2">
-                    <Terminal config={sshConfig} />
+                    <Terminal sessionId="synology-session-1" config={sshConfig} />
                 </div>
             </div>
         ) : (

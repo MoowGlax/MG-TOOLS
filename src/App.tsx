@@ -10,6 +10,7 @@ import { Synology } from './pages/Synology';
 import { Settings } from './pages/Settings';
 import { Series } from './pages/Series';
 import YoutubeToMP3 from './pages/YoutubeToMP3';
+import { SshManager } from './pages/SshManager';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { DownloadManager } from './components/DownloadManager';
@@ -37,6 +38,7 @@ function AnimatedRoutes() {
           <Route path="deluge" element={<PageTransition><Deluge /></PageTransition>} />
           <Route path="prowlarr" element={<PageTransition><Prowlarr /></PageTransition>} />
           <Route path="synology" element={<PageTransition><Synology /></PageTransition>} />
+          <Route path="ssh" element={<PageTransition><SshManager /></PageTransition>} />
           <Route path="series" element={<PageTransition><Series /></PageTransition>} />
           <Route path="youtube" element={<PageTransition><YoutubeToMP3 /></PageTransition>} />
           <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />

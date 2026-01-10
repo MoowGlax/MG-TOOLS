@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Settings, Download, Search, Tv, PanelLeftClose, PanelLeftOpen, Youtube, Server } from 'lucide-react';
+import { Home, Settings, Download, Search, Tv, PanelLeftClose, PanelLeftOpen, Youtube, Server, TerminalSquare } from 'lucide-react';
 
 const DiscordIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -25,6 +25,7 @@ const ALL_ITEMS = [
   { id: 'prowlarr', to: '/prowlarr', icon: Search, label: 'Prowlarr' },
   { id: 'series', to: '/series', icon: Tv, label: 'Séries' },
   { id: 'synology', to: '/synology', icon: Server, label: 'Synology' },
+  { id: 'ssh', to: '/ssh', icon: TerminalSquare, label: 'Terminal SSH' },
   { id: 'youtube', to: '/youtube', icon: Youtube, label: 'YouTube MP3' },
   { id: 'settings', to: '/settings', icon: Settings, label: 'Paramètres' },
 ];

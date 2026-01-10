@@ -45,13 +45,13 @@ interface IElectronAPI {
 
   // SSH API
   ssh: {
-    connect: (config: { host: string; port?: number; username: string; password?: string; privateKey?: string }) => Promise<void>;
-    write: (data: string) => Promise<void>;
-    resize: (cols: number, rows: number) => Promise<void>;
-    disconnect: () => Promise<void>;
-    onData: (callback: (data: string) => void) => () => void;
-    onStatus: (callback: (status: string) => void) => () => void;
-    onError: (callback: (error: string) => void) => () => void;
+    connect: (sessionId: string, config: { host: string; port?: number; username: string; password?: string; privateKey?: string }) => Promise<void>;
+    write: (sessionId: string, data: string) => Promise<void>;
+    resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
+    disconnect: (sessionId: string) => Promise<void>;
+    onData: (callback: (sessionId: string, data: string) => void) => () => void;
+    onStatus: (callback: (sessionId: string, status: string) => void) => () => void;
+    onError: (callback: (sessionId: string, error: string) => void) => () => void;
   };
 }
 

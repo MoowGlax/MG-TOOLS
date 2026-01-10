@@ -282,20 +282,20 @@ app.on('ready', () => {
    });
 
    // SSH Handlers
-   ipcMain.handle('ssh:connect', (_event, config) => {
-       sshService?.connect(config);
+   ipcMain.handle('ssh:connect', (_event, sessionId, config) => {
+       sshService?.connect(sessionId, config);
    });
 
-   ipcMain.handle('ssh:write', (_event, data) => {
-       sshService?.write(data);
+   ipcMain.handle('ssh:write', (_event, sessionId, data) => {
+       sshService?.write(sessionId, data);
    });
 
-   ipcMain.handle('ssh:resize', (_event, cols, rows) => {
-       sshService?.resize(cols, rows);
+   ipcMain.handle('ssh:resize', (_event, sessionId, cols, rows) => {
+       sshService?.resize(sessionId, cols, rows);
    });
 
-   ipcMain.handle('ssh:disconnect', () => {
-       sshService?.disconnect();
+   ipcMain.handle('ssh:disconnect', (_event, sessionId) => {
+       sshService?.disconnect(sessionId);
    });
 
    ipcMain.handle('proxy-request', async (_event, url: string, options: RequestInit) => {

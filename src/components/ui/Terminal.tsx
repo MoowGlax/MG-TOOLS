@@ -5,15 +5,17 @@ import 'xterm/css/xterm.css';
 import { toast } from 'sonner';
 
 interface TerminalProps {
+    sessionId: string;
     config: {
         host: string;
         port?: number;
         user: string;
         password?: string;
+        privateKey?: string;
     };
 }
 
-export function Terminal({ config }: TerminalProps) {
+export function Terminal({ sessionId, config }: TerminalProps) {
     const terminalRef = useRef<HTMLDivElement>(null);
     const xtermRef = useRef<Xterm | null>(null);
     const fitAddonRef = useRef<FitAddon | null>(null);
@@ -78,7 +80,6 @@ export function Terminal({ config }: TerminalProps) {
             resizeObserver.observe(terminalRef.current);
         }
 
-        // ... rest of the code ...
         xtermRef.current = term;
         fitAddonRef.current = fitAddon;
 
@@ -88,23 +89,24 @@ export function Terminal({ config }: TerminalProps) {
         
         term.onResize((size) => {
             if (size && size.cols && size.rows) {
-                window.electronAPI.ssh.resize(size.cols, size.rows);
+                window.electronAPI.ssh.resize(sessionId, size.cols, size.rows);
             }
         });
 
         // Handle user input
         term.onData((data) => {
-            window.electronAPI.ssh.write(data);
+            window.electronAPI.ssh.write(sessionId, data);
         });
 
         // Connect SSH
         const connect = async () => {
             try {
-                await window.electronAPI.ssh.connect({
+                await window.electronAPI.ssh.connect(sessionId, {
                     host: config.host,
-                    port: 22,
+                    port: config.port || 22,
                     username: config.user,
                     password: config.password,
+                    privateKey: config.privateKey
                 });
             } catch (e) {
                 console.error(e);
@@ -113,31 +115,37 @@ export function Terminal({ config }: TerminalProps) {
         };
 
         // Listeners
-        const removeDataListener = window.electronAPI.ssh.onData((data: string) => {
-            term.write(data);
-        });
-
-        const removeStatusListener = window.electronAPI.ssh.onStatus((status: string) => {
-            if (status === 'connected') {
-                term.writeln('\r\nConnected to ' + config.host);
-                // Initial resize sync
-                setTimeout(() => {
-                    safeFit();
-                    try {
-                        const dims = fitAddon.proposeDimensions();
-                        if (dims) window.electronAPI.ssh.resize(dims.cols, dims.rows);
-                    } catch (e) {
-                        console.warn('Propose dimensions error:', e);
-                    }
-                }, 100);
-            } else if (status === 'disconnected') {
-                term.writeln('\r\nDisconnected.');
+        const removeDataListener = window.electronAPI.ssh.onData((sid: string, data: string) => {
+            if (sid === sessionId) {
+                term.write(data);
             }
         });
 
-        const removeErrorListener = window.electronAPI.ssh.onError((error: string) => {
-            term.writeln('\r\nError: ' + error);
-            toast.error('SSH Error: ' + error);
+        const removeStatusListener = window.electronAPI.ssh.onStatus((sid: string, status: string) => {
+            if (sid === sessionId) {
+                if (status === 'connected') {
+                    term.writeln('\r\nConnected to ' + config.host);
+                    // Initial resize sync
+                    setTimeout(() => {
+                        safeFit();
+                        try {
+                            const dims = fitAddon.proposeDimensions();
+                            if (dims) window.electronAPI.ssh.resize(sessionId, dims.cols, dims.rows);
+                        } catch (e) {
+                            console.warn('Propose dimensions error:', e);
+                        }
+                    }, 100);
+                } else if (status === 'disconnected') {
+                    term.writeln('\r\nDisconnected.');
+                }
+            }
+        });
+
+        const removeErrorListener = window.electronAPI.ssh.onError((sid: string, error: string) => {
+            if (sid === sessionId) {
+                term.writeln('\r\nError: ' + error);
+                toast.error('SSH Error: ' + error);
+            }
         });
 
         connect();
@@ -149,10 +157,11 @@ export function Terminal({ config }: TerminalProps) {
             removeStatusListener();
             removeErrorListener();
             // Don't disconnect on unmount to keep session alive across page navigation
-            // window.electronAPI.ssh.disconnect();
+            // window.electronAPI.ssh.disconnect(sessionId);
             term.dispose();
         };
-    }, [config]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(config), sessionId]);
 
     return (
         <div className="w-full h-full bg-zinc-950 p-2 rounded-lg border border-zinc-800 overflow-hidden relative group">

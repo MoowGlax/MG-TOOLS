@@ -67,22 +67,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // SSH Terminal API
   ssh: {
-    connect: (config: any) => ipcRenderer.invoke('ssh:connect', config),
-    write: (data: string) => ipcRenderer.invoke('ssh:write', data),
-    resize: (cols: number, rows: number) => ipcRenderer.invoke('ssh:resize', cols, rows),
-    disconnect: () => ipcRenderer.invoke('ssh:disconnect'),
-    onData: (callback: (data: string) => void) => {
-        const wrapper = (_event: any, data: string) => callback(data);
+    connect: (sessionId: string, config: any) => ipcRenderer.invoke('ssh:connect', sessionId, config),
+    write: (sessionId: string, data: string) => ipcRenderer.invoke('ssh:write', sessionId, data),
+    resize: (sessionId: string, cols: number, rows: number) => ipcRenderer.invoke('ssh:resize', sessionId, cols, rows),
+    disconnect: (sessionId: string) => ipcRenderer.invoke('ssh:disconnect', sessionId),
+    onData: (callback: (sessionId: string, data: string) => void) => {
+        const wrapper = (_event: any, sessionId: string, data: string) => callback(sessionId, data);
         ipcRenderer.on('ssh:data', wrapper);
         return () => ipcRenderer.removeListener('ssh:data', wrapper);
     },
-    onStatus: (callback: (status: string) => void) => {
-        const wrapper = (_event: any, status: string) => callback(status);
+    onStatus: (callback: (sessionId: string, status: string) => void) => {
+        const wrapper = (_event: any, sessionId: string, status: string) => callback(sessionId, status);
         ipcRenderer.on('ssh:status', wrapper);
         return () => ipcRenderer.removeListener('ssh:status', wrapper);
     },
-    onError: (callback: (error: string) => void) => {
-        const wrapper = (_event: any, error: string) => callback(error);
+    onError: (callback: (sessionId: string, error: string) => void) => {
+        const wrapper = (_event: any, sessionId: string, error: string) => callback(sessionId, error);
         ipcRenderer.on('ssh:error', wrapper);
         return () => ipcRenderer.removeListener('ssh:error', wrapper);
     }
