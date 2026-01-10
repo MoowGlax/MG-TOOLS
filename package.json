@@ -86,13 +86,22 @@
       "artifactName": "MG-Tools-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": {
-        "target": "dmg",
-        "arch": [
-          "x64",
-          "arm64"
-        ]
-      },
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "icon": "public/logo.icns",
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
