@@ -17,8 +17,14 @@ export function Home() {
   const [updateStatus, setUpdateStatus] = useState<string>('idle');
   const [updateMessage, setUpdateMessage] = useState<string>('');
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [appVersion, setAppVersion] = useState<string>('');
 
   useEffect(() => {
+    // Get app version
+    if (window.electronAPI) {
+        window.electronAPI.getAppVersion().then(setAppVersion).catch(console.error);
+    }
+
     // Fetch releases
     fetch('https://api.github.com/repos/MoowGlax/mg-tools/releases')
       .then(res => res.json())
@@ -69,7 +75,14 @@ export function Home() {
         <div className="flex items-center gap-4">
             <img src="logo.svg" alt="Logo" className="w-16 h-16 drop-shadow-lg" />
             <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">MG Tools</h1>
+                <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">MG Tools</h1>
+                    {appVersion && (
+                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+                            v{appVersion}
+                        </span>
+                    )}
+                </div>
                 <p className="text-muted-foreground mt-1">
                     Votre outil centralisé pour la gestion de vos services.
                 </p>

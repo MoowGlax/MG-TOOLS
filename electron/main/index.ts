@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, shell, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { SecurityService } from '../services/security';
 import { StorageService } from '../services/storage';
 import { BinariesManager } from '../services/binaries';
@@ -151,8 +152,20 @@ app.on('ready', () => {
   createWindow();
   createTray();
 
+  // Check for updates on startup
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, 3000);
+
+  // Check for updates every 24 hours
+  setInterval(() => {
+      autoUpdater.checkForUpdates();
+  }, 24 * 60 * 60 * 1000);
+
   // IPC handlers
   ipcMain.handle('ping', () => 'pong');
+
+  ipcMain.handle('get-app-version', () => app.getVersion());
 
   ipcMain.handle('save-credentials', async (_event, key: string, value: string) => {
     return SecurityService.saveCredentials(key, value);
@@ -274,6 +287,28 @@ ipcMain.handle('app:notify', async (_event, title, body) => {
     // Icon relative to the executable in dist/win-unpacked/ or dev
     const iconPath = path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.ico' : '../dist/icon.ico');
     new Notification({ title, body, icon: iconPath }).show();
+});
+
+ipcMain.handle('open-external', async (_event, url: string) => {
+    await shell.openExternal(url);
+});
+
+ipcMain.handle('download-file', async (_event, url: string, filename: string, options: any = {}) => {
+    try {
+        const downloadPath = path.join(app.getPath('downloads'), filename);
+        
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+        
+        const buffer = await response.arrayBuffer();
+        fs.writeFileSync(downloadPath, Buffer.from(buffer));
+        
+        shell.showItemInFolder(downloadPath);
+        
+        return { success: true, path: downloadPath };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 });
 
 app.on('window-all-closed', () => {

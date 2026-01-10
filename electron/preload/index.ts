@@ -2,11 +2,14 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   ping: () => ipcRenderer.invoke('ping'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   saveCredentials: (key: string, value: string) => ipcRenderer.invoke('save-credentials', key, value),
   getCredentials: (key: string) => ipcRenderer.invoke('get-credentials', key),
   saveData: (key: string, value: any) => ipcRenderer.invoke('save-data', key, value),
   getData: (key: string) => ipcRenderer.invoke('get-data', key),
   proxyRequest: (url: string, options: RequestInit) => ipcRenderer.invoke('proxy-request', url, options),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+  downloadFile: (url: string, filename: string, options?: any) => ipcRenderer.invoke('download-file', url, filename, options),
   
   // Update API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Database, Wifi, AlertCircle, ExternalLink, Search, Download, Calendar, Globe, X, Loader2, RefreshCw, Filter } from 'lucide-react';
+import { Database, Wifi, AlertCircle, ExternalLink, Search, Download, Calendar, Globe, X, Loader2, RefreshCw, Filter, Monitor, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProwlarrService } from '../services/prowlarr';
 import type { ProwlarrStats, ProwlarrRelease } from '../services/prowlarr';
@@ -56,6 +56,7 @@ export function Prowlarr() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DisplayRelease[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedRelease, setSelectedRelease] = useState<DisplayRelease | null>(null);
 
   // Auto-search from navigation state
   useEffect(() => {
@@ -199,6 +200,32 @@ export function Prowlarr() {
       console.error('Search failed', error);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleLocalDownload = async (release: ProwlarrRelease) => {
+    const link = release.downloadUrl || release.magnetUrl;
+    if (!link) {
+        toast.error('Lien de téléchargement introuvable');
+        return;
+    }
+
+    if (link.startsWith('magnet:')) {
+        await window.electronAPI.openExternal(link);
+        toast.success('Ouverture du lien magnet...');
+    } else {
+        const toastId = toast.loading(`Téléchargement de "${release.title}"...`);
+        const filename = `${release.title}.torrent`;
+        try {
+            const result = await window.electronAPI.downloadFile(link, filename);
+            if (result.success) {
+                toast.success('Fichier téléchargé', { id: toastId, description: result.path });
+            } else {
+                toast.error('Échec du téléchargement', { id: toastId, description: result.error });
+            }
+        } catch (e: any) {
+             toast.error('Erreur', { id: toastId, description: e.message });
+        }
     }
   };
 
@@ -391,22 +418,37 @@ export function Prowlarr() {
                 {filteredReleases.map((release) => (
                   <tr key={release.guid} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 font-medium">
-                        <div className="truncate max-w-[300px]" title={release.title}>
-                            {release.title}
-                        </div>
+                        <button 
+                            className="truncate max-w-[300px] hover:text-primary hover:underline text-left w-full flex items-center gap-2 group" 
+                            title="Voir les détails"
+                            onClick={() => setSelectedRelease(release)}
+                        >
+                            <Info className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            <span className="truncate">{release.title}</span>
+                        </button>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{release.indexer}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatBytes(release.size)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(release.publishDate)}</td>
                     <td className="px-4 py-3 text-right">
-                        <button
-                            onClick={() => handleDownload(release)}
-                            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-                            title="Télécharger avec Deluge"
-                        >
-                            <Download className="h-3 w-3" />
-                            DL
-                        </button>
+                        <div className="flex items-center gap-1 justify-end">
+                            <button
+                                onClick={() => handleDownload(release)}
+                                className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                                title="Envoyer vers Deluge"
+                            >
+                                <Wifi className="h-3 w-3" />
+                                Deluge
+                            </button>
+                            <button
+                                onClick={() => handleLocalDownload(release)}
+                                className="inline-flex items-center gap-1 rounded-md bg-secondary/10 px-2 py-1 text-xs font-medium text-secondary-foreground hover:bg-secondary/20 transition-colors"
+                                title="Télécharger localement"
+                            >
+                                <Monitor className="h-3 w-3" />
+                                Local
+                            </button>
+                        </div>
                     </td>
                   </tr>
                 ))}
@@ -505,21 +547,37 @@ export function Prowlarr() {
                                 {filteredSearchResults.map((release) => (
                                 <tr key={release.guid} className="hover:bg-muted/50 transition-colors">
                                     <td className="px-4 py-3 font-medium">
-                                        <div className="truncate max-w-[400px]" title={release.title}>
-                                            {release.title}
-                                        </div>
+                                        <button 
+                                            className="truncate max-w-[400px] hover:text-primary hover:underline text-left w-full flex items-center gap-2 group" 
+                                            title="Voir les détails"
+                                            onClick={() => setSelectedRelease(release)}
+                                        >
+                                            <Info className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                            <span className="truncate">{release.title}</span>
+                                        </button>
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">{release.indexer}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{formatBytes(release.size)}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{formatDate(release.publishDate)}</td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => handleDownload(release)}
-                                            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-                                        >
-                                            <Download className="h-3 w-3" />
-                                            DL
-                                        </button>
+                                        <div className="flex items-center gap-1 justify-end">
+                                            <button
+                                                onClick={() => handleDownload(release)}
+                                                className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                                                title="Envoyer vers Deluge"
+                                            >
+                                                <Wifi className="h-3 w-3" />
+                                                Deluge
+                                            </button>
+                                            <button
+                                                onClick={() => handleLocalDownload(release)}
+                                                className="inline-flex items-center gap-1 rounded-md bg-secondary/10 px-2 py-1 text-xs font-medium text-secondary-foreground hover:bg-secondary/20 transition-colors"
+                                                title="Télécharger localement"
+                                            >
+                                                <Monitor className="h-3 w-3" />
+                                                Local
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 ))}
@@ -534,6 +592,57 @@ export function Prowlarr() {
                                 : "Entrez un terme pour rechercher"}
                         </div>
                     )}
+                </div>
+            </div>
+        </div>
+      )}
+      {/* Details Modal */}
+      {selectedRelease && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedRelease(null)}>
+            <div className="bg-card border shadow-lg rounded-xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-start">
+                    <h2 className="text-xl font-bold break-all pr-4">{selectedRelease.title}</h2>
+                    <button onClick={() => setSelectedRelease(null)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <span className="text-sm text-muted-foreground block">Indexeur</span>
+                        <span className="font-medium">{selectedRelease.indexer}</span>
+                    </div>
+                    <div>
+                        <span className="text-sm text-muted-foreground block">Taille</span>
+                        <span className="font-medium">{formatBytes(selectedRelease.size)}</span>
+                    </div>
+                     <div>
+                        <span className="text-sm text-muted-foreground block">Date</span>
+                        <span className="font-medium">{formatDate(selectedRelease.publishDate)}</span>
+                    </div>
+                     <div>
+                        <span className="text-sm text-muted-foreground block">Protocole</span>
+                        <span className="font-medium">{selectedRelease.protocol}</span>
+                    </div>
+                     <div className="col-span-2">
+                        <span className="text-sm text-muted-foreground block">GUID / Info</span>
+                        <span className="text-xs font-mono bg-muted p-2 rounded block break-all mt-1">{selectedRelease.guid}</span>
+                    </div>
+                </div>
+                
+                <div className="pt-4 flex justify-end gap-2 border-t mt-4">
+                     <button
+                        onClick={() => { handleDownload(selectedRelease); setSelectedRelease(null); }}
+                        className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                        <Wifi className="h-4 w-4" /> Envoyer vers Deluge
+                    </button>
+                    <button
+                        onClick={() => { handleLocalDownload(selectedRelease); setSelectedRelease(null); }}
+                        className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                        <Monitor className="h-4 w-4" /> Télécharger localement
+                    </button>
                 </div>
             </div>
         </div>

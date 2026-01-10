@@ -2,11 +2,14 @@
 
 interface IElectronAPI {
   ping: () => Promise<string>;
+  getAppVersion: () => Promise<string>;
   saveCredentials: (key: string, value: string) => Promise<boolean>;
   getCredentials: (key: string) => Promise<string | null>;
   saveData: (key: string, value: unknown) => Promise<boolean>;
   getData: (key: string) => Promise<unknown>;
   proxyRequest: (url: string, options: RequestInit & { timeout?: number }) => Promise<{ ok: boolean; status: number; data: unknown; headers?: Record<string, string>; error?: string }>;
+  openExternal: (url: string) => Promise<void>;
+  downloadFile: (url: string, filename: string, options?: any) => Promise<{ success: boolean; path?: string; error?: string }>;
   
   // Update API
   checkForUpdates: () => Promise<unknown>;

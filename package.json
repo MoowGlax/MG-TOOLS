@@ -139,11 +139,6 @@
       "createStartMenuShortcut": true,
       "shortcutName": "MG Tools",
       "artifactName": "MG-Tools-WebSetup-${version}.${ext}"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "MoowGlax",
-      "repo": "MG-TOOLS"
     }
   }
 }

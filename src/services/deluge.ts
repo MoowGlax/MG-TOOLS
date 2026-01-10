@@ -1,3 +1,10 @@
+export interface DelugeFile {
+  index: number;
+  path: string;
+  size: number;
+  progress: number;
+}
+
 export interface DelugeTorrent {
   id: string;
   name: string;
