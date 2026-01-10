@@ -9,7 +9,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getData: (key: string) => ipcRenderer.invoke('get-data', key),
   proxyRequest: (url: string, options: RequestInit) => ipcRenderer.invoke('proxy-request', url, options),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
-  downloadFile: (url: string, filename: string, options?: any) => ipcRenderer.invoke('download-file', url, filename, options),
+  downloadFile: (url: string, filename: string, id: string, options?: any) => ipcRenderer.invoke('download-file', url, filename, id, options),
+  copyLocalFile: (sourcePath: string, filename: string, id: string) => ipcRenderer.invoke('copy-local-file', sourcePath, filename, id),
+  onDownloadProgress: (callback: (data: { id: string, progress: number, total: number, downloaded: number }) => void) => {
+      const wrapper = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('download-progress', wrapper);
+      return () => ipcRenderer.removeListener('download-progress', wrapper);
+  },
   
   // Update API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

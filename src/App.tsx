@@ -10,6 +10,7 @@ import { Series } from './pages/Series';
 import YoutubeToMP3 from './pages/YoutubeToMP3';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
+import { DownloadManager } from './components/DownloadManager';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -48,6 +49,7 @@ function App() {
       <DownloadProvider>
         <HashRouter>
           <Toaster position="top-right" richColors />
+          <DownloadManager />
           <AnimatedRoutes />
         </HashRouter>
       </DownloadProvider>

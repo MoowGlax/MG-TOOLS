@@ -209,5 +209,25 @@ export const ProwlarrService = {
   getPublicUrl: async (): Promise<string> => {
     if (!currentUrl) await ProwlarrService.init();
     return currentUrl;
+  },
+
+  downloadLocal: async (url: string, title: string) => {
+    const { DownloadManagerService } = await import('../components/DownloadManager');
+    const fileName = `${title.replace(/[^a-zA-Z0-9.-]/g, '_')}.torrent`;
+    
+    const downloadId = DownloadManagerService.add(fileName);
+
+    try {
+        const result = await window.electronAPI.downloadFile(url, fileName, downloadId);
+        
+        if (result.success) {
+            DownloadManagerService.update(downloadId, { status: 'completed', progress: 100 });
+            setTimeout(() => DownloadManagerService.remove(downloadId), 5000);
+        } else {
+            DownloadManagerService.update(downloadId, { status: 'error', error: result.error });
+        }
+    } catch (e: any) {
+        DownloadManagerService.update(downloadId, { status: 'error', error: e.message });
+    }
   }
 };

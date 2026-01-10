@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Upload, Play, Pause, Trash2, Plus, AlertCircle, HardDrive, File, X } from 'lucide-react';
+import { Download, Upload, Play, Pause, Trash2, Plus, AlertCircle, HardDrive, File as FileIcon, X, FolderOpen, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DelugeService } from '../services/deluge';
-import type { DelugeTorrent } from '../services/deluge';
+import type { DelugeTorrent, DelugeFile } from '../services/deluge';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 B';
@@ -34,6 +35,10 @@ export function Deluge() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedTorrent, setSelectedTorrent] = useState<DelugeTorrent | null>(null);
+  const [torrentFiles, setTorrentFiles] = useState<DelugeFile[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
   useEffect(() => {
     const checkConfig = async () => {
@@ -82,6 +87,26 @@ export function Deluge() {
       }
       loadTorrents();
     }
+  };
+
+  const handleViewFiles = async (torrent: DelugeTorrent) => {
+    setSelectedTorrent(torrent);
+    setIsLoadingFiles(true);
+    setTorrentFiles([]);
+    try {
+        const files = await DelugeService.getTorrentFiles(torrent.id);
+        setTorrentFiles(files.sort((a: DelugeFile, b: DelugeFile) => a.path.localeCompare(b.path)));
+    } catch (e) {
+        toast.error('Impossible de récupérer la liste des fichiers');
+    } finally {
+        setIsLoadingFiles(false);
+    }
+  };
+
+  const handleDownloadFile = async (file: DelugeFile) => {
+    if (!selectedTorrent) return;
+    // Just trigger the download, the DownloadManager and Service handle the rest
+    await DelugeService.downloadFile(selectedTorrent.id, file.path);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,6 +298,13 @@ export function Deluge() {
                     </td>
                     <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                            <button
+                                onClick={() => handleViewFiles(torrent)}
+                                className="p-1 hover:bg-muted rounded text-foreground"
+                                title="Voir les fichiers"
+                            >
+                                <FolderOpen className="h-4 w-4" />
+                            </button>
                             {torrent.state === 'Paused' ? (
                                 <button 
                                     onClick={() => handleAction('resume', torrent.id)}
@@ -357,7 +389,7 @@ export function Deluge() {
                     onChange={handleFileChange}
                 />
                 <div className="flex flex-col items-center gap-2">
-                    <File className="h-8 w-8 text-muted-foreground" />
+                    <FileIcon className="h-8 w-8 text-muted-foreground" />
                     <p className="text-sm font-medium">Glissez vos fichiers .torrent ici</p>
                     <p className="text-xs text-muted-foreground">ou cliquez pour parcourir</p>
                 </div>
@@ -369,7 +401,7 @@ export function Deluge() {
                       {files.map((file, index) => (
                           <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
                               <div className="flex items-center gap-2 truncate">
-                                  <File className="h-4 w-4 text-primary" />
+                                  <FileIcon className="h-4 w-4 text-primary" />
                                   <span className="truncate">{file.name}</span>
                               </div>
                               <button 
@@ -404,6 +436,57 @@ export function Deluge() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Files Modal */}
+      {selectedTorrent && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedTorrent(null)}>
+            <div className="bg-card border shadow-lg rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b flex justify-between items-center">
+                    <h2 className="text-xl font-bold truncate pr-4 flex items-center gap-2">
+                        <FolderOpen className="h-5 w-5" />
+                        {selectedTorrent.name}
+                    </h2>
+                    <button onClick={() => setSelectedTorrent(null)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-auto p-4">
+                    {isLoadingFiles ? (
+                        <div className="flex justify-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : torrentFiles.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            Aucun fichier trouvé
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {torrentFiles.map((file, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors group">
+                                    <div className="min-w-0 flex-1 mr-4">
+                                        <div className="text-sm font-medium break-all">{file.path}</div>
+                                        <div className="text-xs text-muted-foreground flex gap-2">
+                                            <span>{formatBytes(file.size)}</span>
+                                            {file.progress < 1 && <span>• {(file.progress * 100).toFixed(1)}%</span>}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDownloadFile(file)}
+                                        className="p-2 rounded-md hover:bg-background border opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2"
+                                        title="Télécharger"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        <span className="text-xs font-medium">DL</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
       )}
     </div>

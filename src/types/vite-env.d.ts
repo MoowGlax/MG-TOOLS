@@ -9,7 +9,9 @@ interface IElectronAPI {
   getData: (key: string) => Promise<unknown>;
   proxyRequest: (url: string, options: RequestInit & { timeout?: number }) => Promise<{ ok: boolean; status: number; data: unknown; headers?: Record<string, string>; error?: string }>;
   openExternal: (url: string) => Promise<void>;
-  downloadFile: (url: string, filename: string, options?: any) => Promise<{ success: boolean; path?: string; error?: string }>;
+  downloadFile: (url: string, filename: string, id: string, options?: any) => Promise<{ success: boolean; path?: string; error?: string }>;
+  copyLocalFile: (sourcePath: string, filename: string, id: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+  onDownloadProgress: (callback: (data: { id: string, progress: number, total: number, downloaded: number }) => void) => () => void;
   
   // Update API
   checkForUpdates: () => Promise<unknown>;

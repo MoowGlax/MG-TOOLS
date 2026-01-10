@@ -209,6 +209,8 @@ function SidebarSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =
 function DelugeSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const [url, setUrl] = useState('http://localhost:8112');
   const [password, setPassword] = useState('');
+  const [remotePath, setRemotePath] = useState('');
+  const [localPath, setLocalPath] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -219,8 +221,13 @@ function DelugeSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
       const savedPass = await window.electronAPI.getCredentials('deluge_password');
       const configured = await window.electronAPI.getCredentials('deluge_configured');
       
+      const savedRemotePath = localStorage.getItem('deluge_remote_path');
+      const savedLocalPath = localStorage.getItem('deluge_local_path');
+
       if (savedUrl) setUrl(savedUrl);
       if (savedPass) setPassword(savedPass);
+      if (savedRemotePath) setRemotePath(savedRemotePath);
+      if (savedLocalPath) setLocalPath(savedLocalPath);
       if (configured === 'true') setIsConnected(true);
     };
     load();
@@ -249,6 +256,14 @@ function DelugeSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
         await window.electronAPI.saveCredentials('deluge_url', targetUrl);
         await window.electronAPI.saveCredentials('deluge_password', password);
         await window.electronAPI.saveCredentials('deluge_configured', 'true');
+        
+        // Sauvegarde du mapping
+        if (remotePath) localStorage.setItem('deluge_remote_path', remotePath);
+        else localStorage.removeItem('deluge_remote_path');
+        
+        if (localPath) localStorage.setItem('deluge_local_path', localPath);
+        else localStorage.removeItem('deluge_local_path');
+
         setStatus('success');
         setMessage('Connexion réussie et configuration sauvegardée');
         setIsConnected(true);
@@ -334,6 +349,40 @@ function DelugeSettings({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Votre mot de passe Deluge"
           />
+        </div>
+
+        <div className="pt-4 border-t">
+          <h3 className="text-sm font-semibold mb-2">Mapping des chemins (Optionnel)</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Nécessaire pour le téléchargement direct si Deluge est sur une autre machine.
+            Mappez le dossier de téléchargement distant vers un lecteur réseau local (ex: SMB).
+          </p>
+          
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Chemin Distant (Vu par Deluge)</label>
+              <input
+                type="text"
+                value={remotePath}
+                onChange={(e) => setRemotePath(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Ex: /mnt/disk3 ou /downloads"
+              />
+              <p className="text-[10px] text-muted-foreground">Le chemin absolu du fichier sur le serveur (Linux).</p>
+            </div>
+            
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Chemin Local (Accès Windows)</label>
+              <input
+                type="text"
+                value={localPath}
+                onChange={(e) => setLocalPath(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Ex: \\192.168.1.x\partage ou Z:\"
+              />
+              <p className="text-[10px] text-muted-foreground">Le chemin réseau équivalent pour accéder à ce dossier.</p>
+            </div>
+          </div>
         </div>
 
         {message && (

@@ -293,23 +293,98 @@ ipcMain.handle('open-external', async (_event, url: string) => {
     await shell.openExternal(url);
 });
 
-ipcMain.handle('download-file', async (_event, url: string, filename: string, options: any = {}) => {
-    try {
-        const downloadPath = path.join(app.getPath('downloads'), filename);
-        
-        const response = await fetch(url, options);
-        if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-        
-        const buffer = await response.arrayBuffer();
-        fs.writeFileSync(downloadPath, Buffer.from(buffer));
-        
-        shell.showItemInFolder(downloadPath);
-        
-        return { success: true, path: downloadPath };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-});
+ipcMain.handle('download-file', async (_event, url: string, fileName: string, id: string, options?: any) => {
+        try {
+            const downloadPath = path.join(app.getPath('downloads'), fileName);
+            const win = BrowserWindow.getAllWindows()[0];
+            
+            const response = await fetch(url, options);
+            if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+            
+            const total = Number(response.headers.get('content-length')) || 0;
+            let downloaded = 0;
+
+            if (!response.body) throw new Error('No response body');
+
+            const fileStream = fs.createWriteStream(downloadPath);
+            // @ts-ignore - response.body is a ReadableStream in global fetch
+            const reader = response.body.getReader();
+
+            const pump = async () => {
+                let lastUpdate = 0;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    downloaded += value.length;
+                    fileStream.write(Buffer.from(value));
+                    
+                    const now = Date.now();
+                    if (now - lastUpdate > 100 || downloaded === total) {
+                        win.webContents.send('download-progress', {
+                            id,
+                            progress: total ? (downloaded / total) * 100 : 0,
+                            total,
+                            downloaded
+                        });
+                        lastUpdate = now;
+                    }
+                }
+                fileStream.end();
+            };
+
+            await pump();
+            
+            // Show file in folder
+            // shell.showItemInFolder(downloadPath); // Optional: maybe too annoying if many files
+            
+            return { success: true, path: downloadPath };
+        } catch (error: any) {
+            console.error('Download error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('copy-local-file', async (_event, sourcePath: string, fileName: string, id: string) => {
+        try {
+            const destPath = path.join(app.getPath('downloads'), fileName);
+            const win = BrowserWindow.getAllWindows()[0];
+            
+            const stat = await fs.promises.stat(sourcePath);
+            const total = stat.size;
+            let copied = 0;
+
+            const readStream = fs.createReadStream(sourcePath);
+            const writeStream = fs.createWriteStream(destPath);
+            let lastUpdate = 0;
+
+            readStream.on('data', (chunk) => {
+                copied += chunk.length;
+                const now = Date.now();
+                if (now - lastUpdate > 100 || copied === total) {
+                    win.webContents.send('download-progress', {
+                        id,
+                        progress: (copied / total) * 100,
+                        total,
+                        downloaded: copied
+                    });
+                    lastUpdate = now;
+                }
+            });
+
+            await new Promise((resolve, reject) => {
+                readStream.pipe(writeStream);
+                writeStream.on('finish', () => resolve(undefined));
+                readStream.on('error', reject);
+                writeStream.on('error', reject);
+            });
+
+            return { success: true, path: destPath };
+        } catch (error: any) {
+            console.error('Copy file error:', error);
+            return { success: false, error: error.message };
+        }
+    });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

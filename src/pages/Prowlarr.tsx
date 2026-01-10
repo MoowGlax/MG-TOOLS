@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Database, Wifi, AlertCircle, ExternalLink, Search, Download, Calendar, Globe, X, Loader2, RefreshCw, Filter, Monitor, Info } from 'lucide-react';
+import { Database, Wifi, AlertCircle, ExternalLink, Search, Calendar, Globe, X, Loader2, RefreshCw, Filter, Monitor, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProwlarrService } from '../services/prowlarr';
 import type { ProwlarrStats, ProwlarrRelease } from '../services/prowlarr';
@@ -210,23 +210,8 @@ export function Prowlarr() {
         return;
     }
 
-    if (link.startsWith('magnet:')) {
-        await window.electronAPI.openExternal(link);
-        toast.success('Ouverture du lien magnet...');
-    } else {
-        const toastId = toast.loading(`Téléchargement de "${release.title}"...`);
-        const filename = `${release.title}.torrent`;
-        try {
-            const result = await window.electronAPI.downloadFile(link, filename);
-            if (result.success) {
-                toast.success('Fichier téléchargé', { id: toastId, description: result.path });
-            } else {
-                toast.error('Échec du téléchargement', { id: toastId, description: result.error });
-            }
-        } catch (e: any) {
-             toast.error('Erreur', { id: toastId, description: e.message });
-        }
-    }
+    // Use ProwlarrService which now uses DownloadManager
+    await ProwlarrService.downloadLocal(link, release.title);
   };
 
   const handleDownload = async (release: ProwlarrRelease) => {

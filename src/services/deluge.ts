@@ -1,3 +1,5 @@
+import { DownloadManagerService } from '../components/DownloadManager';
+
 export interface DelugeFile {
   index: number;
   path: string;
@@ -25,6 +27,7 @@ export interface DelugeStats {
 }
 
 interface DelugeRpcResponse {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   result?: any;
   error?: {
     message?: string;
@@ -95,6 +98,7 @@ export const DelugeService = {
       return true;
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invoke: async (method: string, params: any[] = []) => {
       if (!currentUrl) {
           const url = await window.electronAPI.getCredentials('deluge_url');
@@ -206,20 +210,128 @@ export const DelugeService = {
       await DelugeService.invoke('core.add_torrent_magnet', [magnetLink, {}]);
       return true;
     } catch (e) {
-      console.error('Failed to add magnet', e);
+      console.error('Error adding magnet:', e);
       return false;
     }
   },
 
-  addTorrentFile: async (filename: string, base64Content: string): Promise<boolean> => {
+  addTorrentFile: async (filename: string, base64: string): Promise<boolean> => {
     try {
       if (!currentUrl) throw new Error('Not connected');
-      // core.add_torrent_file(filename, filedump, options)
-      await DelugeService.invoke('core.add_torrent_file', [filename, base64Content, {}]);
+      await DelugeService.invoke('core.add_torrent_file', [filename, base64, {}]);
       return true;
     } catch (e) {
-      console.error('Failed to add torrent file', e);
+      console.error('Error adding torrent file:', e);
       return false;
+    }
+  },
+
+  getTorrentFiles: async (torrentId: string): Promise<DelugeFile[]> => {
+    try {
+        const response = await DelugeService.invoke('web.get_torrent_status', [torrentId, ['files']]);
+        if (response && response.files) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return response.files.map((f: any) => ({
+                index: f.index,
+                path: f.path,
+                size: f.size,
+                progress: f.progress || 0
+            }));
+        }
+        return [];
+    } catch (e) {
+        console.error('Error fetching files:', e);
+        return [];
+    }
+  },
+
+  downloadFile: async (torrentId: string, filePath: string): Promise<void> => {
+    if (!currentUrl || !sessionCookie) {
+         await DelugeService.checkConnection();
+    }
+    
+    const fileName = filePath.split(/[/\\]/).pop() || 'downloaded_file';
+    
+    // Create download item
+    const downloadId = DownloadManagerService.add(fileName);
+
+    // Check for Path Mapping
+    const remoteRoot = localStorage.getItem('deluge_remote_path');
+    const localRoot = localStorage.getItem('deluge_local_path');
+
+    if (remoteRoot && localRoot) {
+        try {
+            // Get torrent save path
+            const response = await DelugeService.invoke('web.get_torrent_status', [torrentId, ['save_path']]);
+            if (response && response.save_path) {
+                // Construct full remote path
+                const normalizedFilePath = filePath.replace(/\\/g, '/');
+                const savePath = response.save_path.replace(/\\/g, '/');
+                const fullRemotePath = `${savePath}/${normalizedFilePath}`.replace(/\/+/g, '/');
+                
+                // Replace remote root with local root
+                const normalizedRemoteRoot = remoteRoot.replace(/\\/g, '/').replace(/\/$/, '');
+                
+                if (fullRemotePath.startsWith(normalizedRemoteRoot)) {
+                    const relativePath = fullRemotePath.slice(normalizedRemoteRoot.length);
+                    const normalizedLocalRoot = localRoot.replace(/\/$/, '').replace(/\\$/, '');
+                    
+                    // Construct final local path (using Windows separators if on Windows)
+                    const isWindows = navigator.userAgent.includes('Windows');
+                    const sep = isWindows ? '\\' : '/';
+                    const finalLocalPath = `${normalizedLocalRoot}${relativePath}`.replace(/\//g, sep).replace(/\\/g, sep);
+                    
+                    console.log(`Copying from mapped path: ${finalLocalPath}`);
+                    const result = await window.electronAPI.copyLocalFile(finalLocalPath, fileName, downloadId);
+                    
+                    if (result.success) {
+                        DownloadManagerService.update(downloadId, { status: 'completed', progress: 100 });
+                        setTimeout(() => DownloadManagerService.remove(downloadId), 5000); // Remove after 5s
+                    } else {
+                        DownloadManagerService.update(downloadId, { status: 'error', error: result.error });
+                    }
+                    return;
+                } else {
+                    DownloadManagerService.update(downloadId, { 
+                        status: 'error', 
+                        error: `Le fichier (${fullRemotePath}) n'est pas dans le chemin distant configuré (${normalizedRemoteRoot})` 
+                    });
+                    return;
+                }
+            }
+        } catch (e: any) {
+            console.error('Path mapping download error:', e);
+            DownloadManagerService.update(downloadId, { status: 'error', error: `Erreur de mapping: ${e.message}` });
+            return;
+        }
+    }
+    
+    // Normalize path separators and remove leading slashes
+    const normalizedPath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    
+    // Deluge Web UI maps files to /data/<torrent_id>/<path>
+    // Note: Path components must be encoded
+    const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/');
+    // Remove trailing slash from currentUrl if present
+    const baseUrl = currentUrl?.replace(/\/$/, '');
+    const downloadUrl = `${baseUrl}/data/${torrentId}/${encodedPath}`;
+    
+    try {
+        const result = await window.electronAPI.downloadFile(downloadUrl, fileName, downloadId, {
+            headers: {
+                'Cookie': sessionCookie
+            }
+        });
+        
+        if (result.success) {
+            DownloadManagerService.update(downloadId, { status: 'completed', progress: 100 });
+            setTimeout(() => DownloadManagerService.remove(downloadId), 5000);
+        } else {
+            DownloadManagerService.update(downloadId, { status: 'error', error: result.error });
+        }
+    } catch (e) {
+        console.error(e);
+        DownloadManagerService.update(downloadId, { status: 'error', error: (e as Error).message });
     }
   },
 
