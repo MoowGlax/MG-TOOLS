@@ -41,8 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       checkBinaries: () => ipcRenderer.invoke('youtube:check-binaries'),
       getBinariesPath: () => ipcRenderer.invoke('youtube:get-binaries-path'),
       getInfo: (url: string) => ipcRenderer.invoke('youtube:get-info', url),
-      download: (url: string, options: any) => ipcRenderer.invoke('youtube:download', url, options),
-      cancel: () => ipcRenderer.invoke('youtube:cancel'),
+      download: (url: string, options: any, id?: string) => ipcRenderer.invoke('youtube:download', url, options, id),
+      cancel: (id?: string) => ipcRenderer.invoke('youtube:cancel', id),
       openDownloads: () => ipcRenderer.invoke('youtube:open-downloads'),
       onBinaryProgress: (callback: (status: string) => void) => {
           const wrapper = (_event: any, status: string) => callback(status);

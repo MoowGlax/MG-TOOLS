@@ -259,11 +259,41 @@ ipcMain.handle('youtube:get-info', async (_, url) => {
     return YoutubeService.getVideoInfo(url);
 });
 
-ipcMain.handle('youtube:download', async (event, url, options) => {
+ipcMain.handle('youtube:download', async (event, url, options, id?: string) => {
     try {
-        await YoutubeService.downloadMedia(url, options, (percent) => {
-            event.sender.send('youtube:download-progress', percent);
+        await YoutubeService.downloadMedia(url, options, (data) => {
+            // Keep existing event for specific UI (if needed)
+            event.sender.send('youtube:download-progress', data);
+
+            // Send generic event for DownloadManager if ID is provided
+            if (id) {
+                event.sender.send('download-progress', {
+                    id,
+                    progress: data.percent,
+                    total: data.total, // This might be item count, not bytes, for playlists. 
+                    // YoutubeService sends { percent, current, total, eta }
+                    // DownloadManager expects { id, progress, total?, downloaded? }
+                    // Since we don't always have bytes total from yt-dlp output in this service (it parses text),
+                    // we stick to percentage.
+                    downloaded: undefined 
+                });
+            }
         });
+        
+        // If successful, update status to completed in DownloadManager
+        if (id) {
+             event.sender.send('download-progress', {
+                id,
+                progress: 100,
+                status: 'completed' // Wait, DownloadManager handles status based on progress? 
+                // No, DownloadManager updates props. It doesn't infer status 'completed' automatically unless progress is 100?
+                // Actually DownloadManagerService.update just merges data.
+                // But the component displays 'completed' if status is 'completed'.
+                // The generic listener in DownloadManager sets status to 'downloading'.
+                // So we might need to send a final update or let the frontend handle completion.
+            });
+        }
+
         return { success: true };
     } catch (error: any) {
         // Return error object instead of throwing to avoid Electron error logging for cancellations
@@ -279,8 +309,8 @@ ipcMain.handle('youtube:open-downloads', async () => {
     return YoutubeService.openDownloadsFolder();
 });
 
-ipcMain.handle('youtube:cancel', async () => {
-    return YoutubeService.cancelDownload();
+ipcMain.handle('youtube:cancel', async (_, id?: string) => {
+    return YoutubeService.cancelDownload(id);
 });
 
 ipcMain.handle('app:notify', async (_event, title, body) => {

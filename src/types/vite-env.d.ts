@@ -11,7 +11,7 @@ interface IElectronAPI {
   openExternal: (url: string) => Promise<void>;
   downloadFile: (url: string, filename: string, id: string, options?: any) => Promise<{ success: boolean; path?: string; error?: string }>;
   copyLocalFile: (sourcePath: string, filename: string, id: string) => Promise<{ success: boolean; path?: string; error?: string }>;
-  onDownloadProgress: (callback: (data: { id: string, progress: number, total: number, downloaded: number }) => void) => () => void;
+  onDownloadProgress: (callback: (data: { id: string, progress: number, total: number, downloaded: number, status?: string }) => void) => () => void;
   
   // Update API
   checkForUpdates: () => Promise<unknown>;
@@ -27,8 +27,8 @@ interface IElectronAPI {
       checkBinaries: () => Promise<void>;
       getBinariesPath: () => Promise<string>;
       getInfo: (url: string) => Promise<any>;
-      download: (url: string, options: DownloadOptions) => Promise<{ success: boolean }>;
-      cancel: () => Promise<boolean>;
+      download: (url: string, options: DownloadOptions, id?: string) => Promise<{ success: boolean }>;
+      cancel: (id?: string) => Promise<boolean>;
       openDownloads: () => Promise<string>;
       onBinaryProgress: (callback: (status: string) => void) => () => void;
       onDownloadProgress: (callback: (data: ProgressData) => void) => () => void;

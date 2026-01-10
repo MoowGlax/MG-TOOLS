@@ -108,35 +108,29 @@ export function Sidebar() {
       const items = [ALL_ITEMS.find(i => i.id === 'home')!];
       
       // Filter others based on order
-      const otherIds = config.order.filter(id => id !== 'home');
+      const otherIds = config.order.filter(id => id !== 'home' && id !== 'settings');
       
       otherIds.forEach(id => {
           // Skip if hidden
           if (config.hidden.includes(id)) return;
-          // Settings cannot be hidden
-          if (id === 'settings' && config.hidden.includes('settings')) return; 
           
           const item = ALL_ITEMS.find(i => i.id === id);
           if (item) items.push(item);
       });
 
-      // Safety: ensure Settings is visible if not in order or hidden erroneously
-      if (!items.find(i => i.id === 'settings')) {
-          items.push(ALL_ITEMS.find(i => i.id === 'settings')!);
-      }
-
       return items;
   };
 
   const displayItems = getDisplayItems();
+  const settingsItem = ALL_ITEMS.find(i => i.id === 'settings')!;
 
   return (
     <div className={cn(
         "flex h-full flex-col border-r bg-card/80 backdrop-blur-md text-card-foreground transition-all duration-300", 
-        isCollapsed ? "w-[80px]" : "w-64"
+        isCollapsed ? "w-[70px]" : "w-64"
     )}>
       {/* Logo Header */}
-      <div className="flex flex-col items-center justify-center py-8 border-b shrink-0 titlebar-drag-region bg-gradient-to-b from-background/50 to-transparent">
+      <div className="flex flex-col items-center justify-center py-4 border-b shrink-0 titlebar-drag-region bg-gradient-to-b from-background/50 to-transparent">
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
           <img 
@@ -144,18 +138,18 @@ export function Sidebar() {
             alt="MG Tools Logo" 
             className={cn(
               "relative transition-all duration-300 drop-shadow-lg",
-              isCollapsed ? "w-8 h-8" : "w-12 h-12"
+              isCollapsed ? "w-8 h-8" : "w-10 h-10"
             )}
           />
         </div>
         {!isCollapsed && (
-          <h1 className="mt-4 font-bold text-lg bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent whitespace-nowrap tracking-wide">
+          <h1 className="mt-2 font-bold text-base bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent whitespace-nowrap tracking-wide">
             MG Tools
           </h1>
         )}
       </div>
 
-      <nav className="flex-1 space-y-2 p-3 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 space-y-1 p-2 overflow-y-auto overflow-x-hidden">
         {displayItems.map((item) => (
           <NavLink
             key={item.to}
@@ -209,7 +203,24 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-border/50 space-y-2">
+      <div className="p-2 border-t border-border/50 space-y-1">
+        {/* Settings Link */}
+        <NavLink
+            to={settingsItem.to}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground relative group no-drag",
+                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                isCollapsed && "justify-center px-2"
+              )
+            }
+            title={isCollapsed ? settingsItem.label : undefined}
+        >
+            <settingsItem.icon className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span className="flex-1 overflow-hidden whitespace-nowrap">{settingsItem.label}</span>}
+        </NavLink>
+
+        {/* Discord Link */}
         <a
           href="https://discord.gg/XZE3jyS4ms"
           target="_blank"
@@ -218,14 +229,16 @@ export function Sidebar() {
             "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-muted-foreground hover:bg-[#5865F2]/10 hover:text-[#5865F2] group",
             isCollapsed && "justify-center px-2"
           )}
+          title={isCollapsed ? "Discord" : undefined}
         >
-          <DiscordIcon className="h-5 w-5 transition-transform group-hover:scale-110" />
-          {!isCollapsed && <span className="font-medium">Discord</span>}
+          <DiscordIcon className="h-5 w-5 transition-transform group-hover:scale-110 shrink-0" />
+          {!isCollapsed && <span className="font-medium text-sm">Discord</span>}
         </a>
         
+        {/* Controls */}
         <div className={cn(
-          "flex items-center gap-3 px-3 py-2",
-          isCollapsed ? "justify-center" : "justify-between"
+          "flex items-center gap-3 px-3 py-2 mt-2",
+          isCollapsed ? "justify-center flex-col" : "justify-between"
         )}>
           <ThemeToggle />
           {!isCollapsed && (
@@ -236,15 +249,15 @@ export function Sidebar() {
               <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
+          {isCollapsed && (
+             <button
+               onClick={toggleCollapse}
+               className="p-1.5 hover:bg-muted rounded-md transition-colors"
+             >
+               <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+             </button>
+          )}
         </div>
-        {isCollapsed && (
-           <button
-             onClick={toggleCollapse}
-             className="w-full flex justify-center p-2 hover:bg-muted rounded-md transition-colors"
-           >
-             <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
-           </button>
-        )}
       </div>
     </div>
   );

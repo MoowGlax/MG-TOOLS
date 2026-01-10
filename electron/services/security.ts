@@ -34,19 +34,32 @@ export const SecurityService = {
       return null;
     }
 
+    let data: Record<string, string> = {};
+
     try {
       if (!fs.existsSync(DATA_PATH)) {
         return null;
       }
 
-      const data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf-8'));
+      data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf-8'));
       if (!data[key]) return null;
 
       const buffer = Buffer.from(data[key], 'base64');
       const decrypted = safeStorage.decryptString(buffer);
       return decrypted;
     } catch (error) {
-      console.error('Failed to retrieve credentials:', error);
+      console.warn(`[Security] Failed to decrypt credentials for '${key}'. Clearing invalid data.`);
+      
+      // Self-healing: remove the invalid entry
+      try {
+          if (data[key]) {
+              delete data[key];
+              fs.writeFileSync(DATA_PATH, JSON.stringify(data));
+          }
+      } catch (writeError) {
+          console.error('[Security] Failed to clean up invalid credentials:', writeError);
+      }
+
       return null;
     }
   }

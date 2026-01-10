@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { DownloadManagerService } from '../components/DownloadManager';
 
 interface DownloadOptions {
     format: 'mp3' | 'mp4';
@@ -36,19 +37,40 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [progress, setProgress] = useState<ProgressData>({ percent: 0 });
     const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+    const [currentDownloadId, setCurrentDownloadId] = useState<string | null>(null);
 
     const startDownload = useCallback(async (url: string, options: DownloadOptions, info: VideoInfo) => {
+        const filename = `${info.title}.${options.format}`; // Simple approximation
+
+        if (DownloadManagerService.isDownloading(filename)) {
+            toast.warning("Ce téléchargement est déjà en cours");
+            return;
+        }
+
         setIsDownloading(true);
         setVideoInfo(info);
         setProgress({ percent: 0 });
+
+        // Register with DownloadManager
+        const downloadId = DownloadManagerService.add(filename);
+        setCurrentDownloadId(downloadId);
 
         let cleanup: (() => void) | undefined;
         try {
             cleanup = window.electronAPI.youtube.onDownloadProgress((data) => {
                 setProgress(data);
+                
+                // Update DownloadManager with playlist info if available
+                if (data.total && data.total > 1) { // Assuming total > 1 implies playlist or just tracking items
+                    DownloadManagerService.update(downloadId, {
+                        progress: data.percent,
+                        playlistIndex: data.current,
+                        playlistTotal: data.total
+                    });
+                }
             });
 
-            const result = await window.electronAPI.youtube.download(url, options);
+            const result = await window.electronAPI.youtube.download(url, options, downloadId);
             if (result && !result.success) {
                 throw new Error((result as any).error || "Download failed");
             }
@@ -71,6 +93,9 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
 
         } catch (error: any) {
             console.error(error);
+            // Mark as error in DownloadManager
+            DownloadManagerService.update(downloadId, { status: 'error', error: error.message });
+
             // Si annulé, on ne veut pas forcément une erreur rouge effrayante
             if (error.message && error.message.includes('annulé')) {
                 toast.info("Téléchargement annulé");
@@ -87,15 +112,15 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const cancelDownload = useCallback(async () => {
-        console.log("Cancelling download...");
+        console.log("Cancelling download...", currentDownloadId);
         try {
-            await window.electronAPI.youtube.cancel();
+            await window.electronAPI.youtube.cancel(currentDownloadId || undefined);
             console.log("Cancellation request sent");
             // L'état sera mis à jour via le catch du startDownload qui recevra l'erreur d'annulation
         } catch (error) {
             console.error("Erreur lors de l'annulation", error);
         }
-    }, []);
+    }, [currentDownloadId]);
 
     return (
         <DownloadContext.Provider value={{ isDownloading, progress, videoInfo, startDownload, cancelDownload }}>

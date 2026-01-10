@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Youtube, Search, Download, Music, Video, FolderOpen, Loader2, ListVideo, Settings2, X } from 'lucide-react';
+import { Youtube, Search, Download, Music, Video, FolderOpen, Loader2, ListVideo, Settings2, X, BarChart3, HardDrive, Clock, History, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDownload } from '../contexts/DownloadContext';
+import { DownloadManagerService, type DownloadItem } from '../components/DownloadManager';
 
 interface VideoInfo {
   title: string;
@@ -13,18 +14,17 @@ interface VideoInfo {
 }
 
 export default function YoutubeToMP3() {
-  const { isDownloading, progress: downloadProgress, videoInfo: downloadVideoInfo, startDownload, cancelDownload } = useDownload();
+  const { startDownload } = useDownload();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [localVideoInfo, setLocalVideoInfo] = useState<VideoInfo | null>(null);
   const [binaryStatus, setBinaryStatus] = useState<string | null>('Vérification des composants...');
+  const [showHistory, setShowHistory] = useState(false);
+  const [stats, setStats] = useState({ total: 0, completed: 0 });
 
   // Options
   const [format, setFormat] = useState<'mp3' | 'mp4'>('mp3');
   const [quality, setQuality] = useState('best');
-
-  // Use local video info (search result) or active download info
-  const videoInfo = isDownloading && downloadVideoInfo ? (downloadVideoInfo as VideoInfo) : localVideoInfo;
 
   useEffect(() => {
     // Check binaries on mount
@@ -46,6 +46,14 @@ export default function YoutubeToMP3() {
         }
     };
     check();
+
+    // Stats subscription
+    const updateStats = () => {
+        setStats(DownloadManagerService.getStats());
+    };
+    updateStats();
+    const unsubscribe = DownloadManagerService.subscribeToHistory(() => updateStats());
+    return unsubscribe;
   }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -67,12 +75,14 @@ export default function YoutubeToMP3() {
   };
 
   const handleDownload = async () => {
-    if (!videoInfo) return;
+    if (!localVideoInfo) return;
     
-    // Check if we are already downloading (although button should be hidden)
-    if (isDownloading) return;
+    // Start download
+    await startDownload(url, { format, quality }, localVideoInfo);
     
-    await startDownload(url, { format, quality }, videoInfo);
+    // Reset UI immediately as requested
+    setLocalVideoInfo(null);
+    setUrl('');
   };
 
   const openFolder = () => {
@@ -80,7 +90,7 @@ export default function YoutubeToMP3() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 relative">
       
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -99,14 +109,55 @@ export default function YoutubeToMP3() {
             )}
             </div>
         </div>
-        <button 
-            onClick={openFolder}
-            className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors flex items-center gap-2 border border-gray-700"
-            title="Ouvrir le dossier de téléchargement"
-        >
-            <FolderOpen className="w-5 h-5" />
-            <span className="hidden sm:inline">Ouvrir dossier</span>
-        </button>
+        <div className="flex gap-2">
+            <button 
+                onClick={() => setShowHistory(true)}
+                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors flex items-center gap-2 border border-gray-700"
+                title="Historique"
+            >
+                <History className="w-5 h-5" />
+                <span className="hidden sm:inline">Historique</span>
+            </button>
+            <button 
+                onClick={openFolder}
+                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors flex items-center gap-2 border border-gray-700"
+                title="Ouvrir le dossier de téléchargement"
+            >
+                <FolderOpen className="w-5 h-5" />
+                <span className="hidden sm:inline">Dossier</span>
+            </button>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 rounded-lg">
+                <BarChart3 className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+                <p className="text-sm text-gray-400">Total Téléchargé</p>
+                <p className="text-xl font-bold text-white">{stats.completed}</p>
+            </div>
+        </div>
+        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 flex items-center gap-4">
+            <div className="p-3 bg-purple-500/10 rounded-lg">
+                <HardDrive className="w-6 h-6 text-purple-500" />
+            </div>
+            <div>
+                <p className="text-sm text-gray-400">Qualité</p>
+                <p className="text-xl font-bold text-white">Max (320k)</p>
+            </div>
+        </div>
+        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 flex items-center gap-4">
+            <div className="p-3 bg-green-500/10 rounded-lg">
+                <Clock className="w-6 h-6 text-green-500" />
+            </div>
+            <div>
+                <p className="text-sm text-gray-400">Historique</p>
+                <p className="text-xl font-bold text-white">{stats.total} items</p>
+            </div>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -135,15 +186,15 @@ export default function YoutubeToMP3() {
       </div>
 
       {/* Video Preview & Options */}
-      {videoInfo && (
+      {localVideoInfo && (
         <div className="bg-gray-800/40 rounded-2xl border border-gray-700/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col md:flex-row">
             {/* Thumbnail */}
             <div className="md:w-80 h-56 relative group bg-black/50 flex-shrink-0">
-              {videoInfo.thumbnail ? (
+              {localVideoInfo.thumbnail ? (
                   <img 
-                    src={videoInfo.thumbnail} 
-                    alt={videoInfo.title} 
+                    src={localVideoInfo.thumbnail} 
+                    alt={localVideoInfo.title} 
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
               ) : (
@@ -153,13 +204,13 @@ export default function YoutubeToMP3() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                 <span className="text-white text-sm font-medium bg-red-600 px-2 py-1 rounded">
-                    {videoInfo.duration}
+                    {localVideoInfo.duration}
                 </span>
               </div>
-              {videoInfo.isPlaylist && (
+              {localVideoInfo.isPlaylist && (
                   <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 border border-white/10">
                       <ListVideo className="w-3 h-3" />
-                      Playlist ({videoInfo.playlistCount})
+                      Playlist ({localVideoInfo.playlistCount})
                   </div>
               )}
             </div>
@@ -168,13 +219,13 @@ export default function YoutubeToMP3() {
             <div className="p-6 flex flex-col justify-between flex-1 gap-6">
               <div>
                 <h2 className="text-2xl font-bold text-white line-clamp-2 mb-2 leading-tight">
-                  {videoInfo.title}
+                  {localVideoInfo.title}
                 </h2>
                 <p className="text-gray-400 font-medium flex items-center gap-2">
                   <span className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">
-                    {videoInfo.author.substring(0, 2).toUpperCase()}
+                    {localVideoInfo.author.substring(0, 2).toUpperCase()}
                   </span>
-                  {videoInfo.author}
+                  {localVideoInfo.author}
                 </p>
               </div>
 
@@ -218,118 +269,85 @@ export default function YoutubeToMP3() {
                       </div>
                   </div>
 
-                  {/* Download Button & Progress */}
-                  <div className="space-y-4">
-                    {!isDownloading ? (
-                        <button
-                            onClick={handleDownload}
-                            className="w-full py-4 bg-white hover:bg-gray-50 text-gray-900 font-bold rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl active:scale-[0.99]"
-                        >
-                            <Download className="w-5 h-5" />
-                            <span>Télécharger {videoInfo.isPlaylist ? 'la playlist' : 'maintenant'}</span>
-                        </button>
-                    ) : (
-                        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 space-y-3">
-                            <div className="flex justify-between items-end text-sm">
-                                <div className="flex items-center gap-2 text-white font-medium">
-                                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
-                                    <span>
-                                        {downloadProgress.total && downloadProgress.total > 1 
-                                            ? `Téléchargement de la playlist...`
-                                            : 'Téléchargement en cours...'}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-red-400 font-bold">
-                                        {Math.round(downloadProgress.total && downloadProgress.total > 1 
-                                            ? (((downloadProgress.current || 1) - 1) / downloadProgress.total) * 100 + (downloadProgress.percent / downloadProgress.total)
-                                            : downloadProgress.percent
-                                        )}%
-                                    </span>
-                                    <button 
-                                        onClick={cancelDownload}
-                                        className="p-1 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
-                                        title="Annuler le téléchargement"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Main Progress Bar */}
-                            <div className="h-2.5 w-full bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                                <div 
-                                    className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300 ease-out"
-                                    style={{ 
-                                        width: `${downloadProgress.total && downloadProgress.total > 1 
-                                            ? (((downloadProgress.current || 1) - 1) / downloadProgress.total) * 100 + (downloadProgress.percent / downloadProgress.total)
-                                            : downloadProgress.percent}%` 
-                                    }}
-                                />
-                            </div>
-
-                            {/* Details Row */}
-                            <div className="flex justify-between text-xs text-gray-400 font-medium">
-                                <span>
-                                    {downloadProgress.total && downloadProgress.total > 1 
-                                        ? `Vidéo ${downloadProgress.current} sur ${downloadProgress.total}`
-                                        : 'Traitement en cours...'}
-                                </span>
-                                {downloadProgress.eta && (
-                                    <span>Temps restant : <span className="text-gray-300">{downloadProgress.eta}</span></span>
-                                )}
-                            </div>
-
-                            {/* Playlist Item Progress (Small) */}
-                            {downloadProgress.total && downloadProgress.total > 1 && (
-                                <div className="space-y-1 mt-2 pt-2 border-t border-gray-700/30">
-                                    <div className="flex justify-between text-[10px] text-gray-500 uppercase tracking-wider">
-                                        <span>Fichier actuel</span>
-                                        <span>{Math.round(downloadProgress.percent)}%</span>
-                                    </div>
-                                    <div className="h-1 w-full bg-gray-700 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-gray-400 transition-all duration-300 ease-out"
-                                            style={{ width: `${downloadProgress.percent}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                  </div>
+                  {/* Download Button */}
+                  <button
+                      onClick={handleDownload}
+                      className="w-full py-4 bg-white hover:bg-gray-50 text-gray-900 font-bold rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl active:scale-[0.99]"
+                  >
+                      <Download className="w-5 h-5" />
+                      <span>Télécharger {localVideoInfo.isPlaylist ? 'la playlist' : 'maintenant'}</span>
+                  </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Features Grid (visible only when no video selected) */}
-      {!videoInfo && !isLoading && (
-        <div className="grid md:grid-cols-3 gap-6 pt-8">
-          <div className="bg-gray-800/30 p-6 rounded-2xl border border-gray-800 hover:border-red-500/30 transition-colors">
-            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
-              <Music className="w-6 h-6 text-red-500" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Haute Qualité Audio</h3>
-            <p className="text-gray-400 text-sm">Conversion en MP3 jusqu'à 320kbps pour une expérience d'écoute optimale.</p>
-          </div>
-          <div className="bg-gray-800/30 p-6 rounded-2xl border border-gray-800 hover:border-red-500/30 transition-colors">
-            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
-              <ListVideo className="w-6 h-6 text-red-500" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Support Playlists</h3>
-            <p className="text-gray-400 text-sm">Téléchargez des playlists entières en un seul clic.</p>
-          </div>
-          <div className="bg-gray-800/30 p-6 rounded-2xl border border-gray-800 hover:border-red-500/30 transition-colors">
-            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
-              <Video className="w-6 h-6 text-red-500" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">MP3 & MP4</h3>
-            <p className="text-gray-400 text-sm">Choisissez entre format audio ou vidéo selon vos besoins.</p>
-          </div>
-        </div>
-      )}
+      {/* History Modal */}
+      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
     </div>
   );
+}
+
+function HistoryModal({ onClose }: { onClose: () => void }) {
+    const [history, setHistory] = useState<DownloadItem[]>([]);
+    
+    useEffect(() => {
+        return DownloadManagerService.subscribeToHistory(setHistory);
+    }, []);
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+             <div className="bg-gray-950 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                 <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 rounded-t-2xl">
+                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                         <History className="w-5 h-5 text-red-500" /> Historique
+                     </h3>
+                     <div className="flex gap-2">
+                        {/* <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-300 px-2">Tout effacer</button> */}
+                        <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                     </div>
+                 </div>
+                 <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                     {history.length === 0 ? (
+                         <div className="text-center py-10 text-gray-500">
+                             <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                             <p>Aucun historique</p>
+                         </div>
+                     ) : (
+                         history.map((item) => (
+                             <div key={item.id} className="bg-gray-900/50 border border-gray-800/50 p-3 rounded-lg flex items-center justify-between hover:bg-gray-800/50 transition-colors group">
+                                 <div className="flex items-center gap-3 overflow-hidden">
+                                     <div className={`p-2 rounded-full shrink-0 ${
+                                         item.status === 'completed' ? 'bg-green-500/10 text-green-500' :
+                                         item.status === 'error' ? 'bg-red-500/10 text-red-500' :
+                                         'bg-blue-500/10 text-blue-500'
+                                     }`}>
+                                         {item.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> :
+                                          item.status === 'error' ? <AlertCircle className="w-4 h-4" /> :
+                                          <Loader2 className="w-4 h-4 animate-spin" />}
+                                     </div>
+                                     <div className="flex flex-col min-w-0">
+                                         <span className="font-medium text-gray-200 truncate pr-4 text-sm" title={item.filename}>
+                                             {item.filename}
+                                         </span>
+                                         <span className="text-xs text-gray-500">
+                                             {item.status === 'completed' ? 'Terminé' :
+                                              item.status === 'error' ? (item.error || 'Erreur') :
+                                              `${Math.round(item.progress)}%`}
+                                         </span>
+                                     </div>
+                                 </div>
+                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* Actions could go here */}
+                                 </div>
+                             </div>
+                         ))
+                     )}
+                 </div>
+             </div>
+        </div>
+    );
 }

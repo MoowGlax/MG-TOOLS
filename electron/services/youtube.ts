@@ -20,9 +20,8 @@ export interface ProgressData {
 }
 
 export class YoutubeService {
-    private static activeProcess: any = null;
-    private static isCancelled = false;
-    private static cancelCallback: ((err: Error) => void) | null = null;
+    // Map to store active processes: downloadId -> { process, rejectPromise }
+    private static processes = new Map<string, { process: any, reject: (err: Error) => void }>();
 
     static async getVideoInfo(url: string) {
         const paths = BinariesManager.getPaths();
@@ -80,11 +79,13 @@ export class YoutubeService {
         }
     }
 
-    static async downloadMedia(url: string, options: DownloadOptions, onProgress: (data: ProgressData) => void) {
+    static async downloadMedia(url: string, options: DownloadOptions, onProgress: (data: ProgressData) => void, id?: string) {
         const paths = BinariesManager.getPaths();
         const downloadDir = app.getPath('downloads');
         
         // Output template
+        // For playlists, we want to ensure unique filenames if possible or rely on title
+        // %(playlist_index)s is useful for ordering
         const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
 
         const args = [
@@ -115,12 +116,14 @@ export class YoutubeService {
         args.push(url);
 
         return new Promise<void>((resolve, reject) => {
-            YoutubeService.isCancelled = false;
-            YoutubeService.cancelCallback = reject;
-            
             const subprocess = spawn(paths.ytdlp, args);
-            YoutubeService.activeProcess = subprocess;
-            console.log('[YoutubeService] Started process, PID:', subprocess.pid);
+            
+            // Store process if ID is provided
+            if (id) {
+                YoutubeService.processes.set(id, { process: subprocess, reject });
+            }
+            
+            console.log(`[YoutubeService] Started process for ${id || 'unknown'}, PID:`, subprocess.pid);
             
             let currentItem = 1;
             let totalItems = 1;
@@ -130,7 +133,8 @@ export class YoutubeService {
                     const text = data.toString();
                     
                     // Check for item progress "Downloading item 1 of 3"
-                    const itemMatch = text.match(/Downloading item (\d+) of (\d+)/);
+                    // Also support [download] Downloading video 1 of 3
+                    const itemMatch = text.match(/Downloading (?:item|video) (\d+) of (\d+)/i);
                     if (itemMatch) {
                         currentItem = parseInt(itemMatch[1]);
                         totalItems = parseInt(itemMatch[2]);
@@ -151,64 +155,67 @@ export class YoutubeService {
             }
 
             subprocess.on('close', (code) => {
-                YoutubeService.activeProcess = null;
-                YoutubeService.cancelCallback = null;
+                if (id) YoutubeService.processes.delete(id);
+                
                 if (code === 0) {
                     resolve();
                 } else {
-                    // Check for SIGTERM or SIGKILL (cancellation) or explicit cancellation flag
-                    if (YoutubeService.isCancelled) {
-                        reject(new Error('Téléchargement annulé par l\'utilisateur'));
-                    } else {
-                        reject(new Error(`Process exited with code ${code}`));
-                    }
+                    // Check if it was manually cancelled (we reject in cancelDownload)
+                    // If we are here, it might be a crash or error
+                    reject(new Error(`Process exited with code ${code}`));
                 }
             });
 
             subprocess.on('error', (err) => {
-                YoutubeService.activeProcess = null;
-                YoutubeService.cancelCallback = null;
+                if (id) YoutubeService.processes.delete(id);
                 reject(err);
             });
         });
     }
 
-    static cancelDownload() {
-        console.log('[YoutubeService] Cancel requested');
-        if (YoutubeService.activeProcess) {
-            YoutubeService.isCancelled = true;
-            
-            // Immediately reject the promise to update UI
-            if (YoutubeService.cancelCallback) {
-                YoutubeService.cancelCallback(new Error('Téléchargement annulé par l\'utilisateur'));
-                YoutubeService.cancelCallback = null;
-            }
+    static cancelDownload(id?: string) {
+        console.log('[YoutubeService] Cancel requested for:', id);
+        
+        const cancelProcess = (pid: number, reject: (err: Error) => void) => {
+             // Immediately reject the promise to update UI
+            reject(new Error('Téléchargement annulé par l\'utilisateur'));
 
-            const pid = YoutubeService.activeProcess.pid;
-            console.log('[YoutubeService] Active process found, PID:', pid);
+            console.log('[YoutubeService] Killing PID:', pid);
             
             if (process.platform === 'win32' && pid) {
                 try {
-                    console.log('[YoutubeService] Attempting taskkill on PID:', pid);
-                    // Use taskkill to kill the process tree
                     require('child_process').execSync(`taskkill /pid ${pid} /f /t`);
-                    console.log('[YoutubeService] Taskkill successful');
                 } catch (e: any) {
                     console.error('[YoutubeService] Error killing process with taskkill:', e.message);
                 }
             }
             
-            // Still call kill() as a fallback and to ensure the object state is updated
             try {
-                YoutubeService.activeProcess.kill('SIGKILL');
+                process.kill(pid, 'SIGKILL');
             } catch (e: any) {
-                console.log('[YoutubeService] Error calling .kill():', e.message);
+                // Ignore if already dead
             }
-            
-            YoutubeService.activeProcess = null;
-            return true;
+        };
+
+        if (id) {
+            const data = YoutubeService.processes.get(id);
+            if (data) {
+                YoutubeService.processes.delete(id);
+                cancelProcess(data.process.pid, data.reject);
+                return true;
+            }
+        } else {
+            // Cancel all
+            let count = 0;
+            for (const [key, data] of YoutubeService.processes.entries()) {
+                YoutubeService.processes.delete(key);
+                cancelProcess(data.process.pid, data.reject);
+                count++;
+            }
+            return count > 0;
         }
-        console.log('[YoutubeService] No active process to cancel');
+        
+        console.log('[YoutubeService] No active process found to cancel');
         return false;
     }
 
