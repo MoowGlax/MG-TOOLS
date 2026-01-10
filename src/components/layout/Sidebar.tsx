@@ -127,7 +127,7 @@ export function Sidebar() {
   return (
     <div className={cn(
         "flex h-full flex-col border-r bg-card/80 backdrop-blur-md text-card-foreground transition-all duration-300", 
-        isCollapsed ? "w-[70px]" : "w-64"
+        isCollapsed ? "w-[70px]" : "w-52"
     )}>
       {/* Logo Header */}
       <div className="flex flex-col items-center justify-center py-4 border-b shrink-0 titlebar-drag-region bg-gradient-to-b from-background/50 to-transparent">

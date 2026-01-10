@@ -42,10 +42,9 @@ const createTray = () => {
     try {
         const icon = nativeImage.createFromPath(iconPath);
         // Resize for macOS tray (usually 16x16 or 22x22) if the image is large
-        if (process.platform === 'darwin') {
-            icon.resize({ width: 16, height: 16 });
-        }
-        tray = new Tray(icon);
+        // nativeImage.resize returns a NEW image, it does not modify in place
+        const trayIcon = process.platform === 'darwin' ? icon.resize({ width: 16, height: 16 }) : icon;
+        tray = new Tray(trayIcon);
     } catch (error) {
         console.error('Failed to create tray icon:', error);
         return;
@@ -53,6 +52,10 @@ const createTray = () => {
     
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Ouvrir MG Tools', click: () => mainWindow?.show() },
+        { type: 'separator' },
+        { label: 'Discord', click: () => shell.openExternal('https://discord.gg/XZE3jyS4ms') },
+        { label: 'GitHub', click: () => shell.openExternal('https://github.com/MoowGlax/MG-TOOLS') },
+        { label: 'Ouvrir les téléchargements', click: () => shell.openPath(app.getPath('downloads')) },
         { type: 'separator' },
         { label: 'Quitter', click: () => {
             isQuitting = true;
