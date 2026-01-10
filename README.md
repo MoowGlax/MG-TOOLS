@@ -20,12 +20,12 @@ MG-TOOLS est une application de bureau conçue pour centraliser et simplifier la
 
 | Accueil | Séries & Prowlarr |
 |:---:|:---:|
-| ![Accueil](images/accueil.png) | ![Prowlarr](images/prowlarr.png) |
+| ![Accueil](docs/assets/accueil.png) | ![Prowlarr](docs/assets/prowlarr.png) |
 | **Interface Moderne** | **Recherche Centralisée** |
 
 | Notifications | Sidebar |
 |:---:|:---:|
-| ![Notifications](images/notifi.png) | ![Navigation](images/sidebar.png) |
+| ![Notifications](docs/assets/notifi.png) | ![Navigation](docs/assets/sidebar.png) |
 
 ## ✨ Fonctionnalités
 
@@ -66,11 +66,27 @@ Voici les fonctionnalités prévues pour les futures mises à jour :
 
 ## 🛠️ Installation & Développement
 
+### Structure du Projet
+
+- `src/`: Code source Frontend (React + Vite)
+- `electron/`: Code source Backend (Electron)
+  - `main/`: Processus principal
+  - `preload/`: Scripts de préchargement
+  - `services/`: Services métier (YouTube, Stockage, Sécurité)
+- `docs/`: Documentation et assets
+- `scripts/`: Scripts utilitaires (installation, build)
+- `public/`: Assets statiques
+
 ### Prérequis
 - Node.js (v18+)
 - NPM ou Yarn
 
 ### Installation
+
+**Windows (Automatique) :**
+Exécutez `scripts/setup-dev.bat`.
+
+**Manuel :**
 
 ```bash
 # Cloner le dépôt

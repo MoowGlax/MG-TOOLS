@@ -1,10 +1,13 @@
 import path from 'path';
 import fs from 'fs-extra';
-import fetch from 'node-fetch';
 import { app } from 'electron';
 import { chmod } from 'fs/promises';
 import ffbinaries from 'ffbinaries';
-import execa from 'execa';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { Readable } from 'stream';
+
+const execFileAsync = promisify(execFile);
 
 const BIN_DIR = path.join(app.getPath('userData'), 'bin');
 const IS_WIN = process.platform === 'win32';
@@ -19,7 +22,7 @@ const YTDLP_URL = IS_WIN
 const removeQuarantine = async (targetPath: string) => {
     if (process.platform !== 'darwin') return;
     try {
-        await execa('xattr', ['-dr', 'com.apple.quarantine', targetPath]);
+        await execFileAsync('xattr', ['-dr', 'com.apple.quarantine', targetPath]);
     } catch {}
 };
 
@@ -67,7 +70,7 @@ export class BinariesManager {
         if (!fs.existsSync(paths.ffmpeg)) {
             onProgress('Téléchargement de ffmpeg...');
             await new Promise<void>((resolve, reject) => {
-                ffbinaries.downloadBinaries(['ffmpeg'], { destination: paths.dir, quiet: true }, (err) => {
+                ffbinaries.downloadBinaries(['ffmpeg'], { destination: paths.dir, quiet: true }, (err: any) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -90,11 +93,15 @@ export class BinariesManager {
     private static async downloadFile(url: string, dest: string) {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Failed to download ${url}: ${res.statusText}`);
+        if (!res.body) throw new Error('No response body');
         
         const fileStream = fs.createWriteStream(dest);
+        // @ts-ignore - Readable.fromWeb expects a Web ReadableStream
+        const nodeStream = Readable.fromWeb(res.body);
+
         return new Promise<void>((resolve, reject) => {
-            res.body.pipe(fileStream);
-            res.body.on('error', reject);
+            nodeStream.pipe(fileStream);
+            nodeStream.on('error', reject);
             fileStream.on('finish', () => resolve());
         });
     }

@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification } from 'electron';
 import path from 'path';
-import { SecurityService } from './security';
-import { StorageService } from './storage';
-import { BinariesManager } from './binaries';
-import { YoutubeService } from './youtube';
+import { SecurityService } from '../services/security';
+import { StorageService } from '../services/storage';
+import { BinariesManager } from '../services/binaries';
+import { YoutubeService } from '../services/youtube';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
@@ -15,11 +15,6 @@ autoUpdater.disableWebInstaller = true;
 // Set App ID for Windows Notifications
 app.setAppUserModelId('MG Tools');
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
-
 let mainWindow: BrowserWindow | null;
 let splashWindow: BrowserWindow | null;
 let tray: Tray | null = null;
@@ -28,10 +23,10 @@ let isQuitting = false;
 const getIconPath = () => {
     const isDev = !!process.env.VITE_DEV_SERVER_URL;
     if (process.platform === 'win32') {
-        return path.join(__dirname, isDev ? '../public/icon.ico' : '../dist/icon.ico');
+        return path.join(__dirname, isDev ? '../../public/icon.ico' : '../../dist/icon.ico');
     }
     // For macOS and Linux, use png
-    return path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png');
+    return path.join(__dirname, isDev ? '../../public/logo.png' : '../../dist/logo.png');
 };
 
 const createTray = () => {
@@ -89,9 +84,9 @@ const createWindow = () => {
   });
 
   if (process.env.VITE_DEV_SERVER_URL) {
-      splashWindow.loadFile(path.join(__dirname, '../public/splash.html'));
+      splashWindow.loadFile(path.join(__dirname, '../../public/splash.html'));
   } else {
-      splashWindow.loadFile(path.join(__dirname, '../dist/splash.html'));
+      splashWindow.loadFile(path.join(__dirname, '../../dist/splash.html'));
   }
 
   // Create Main Window (Hidden)
@@ -101,7 +96,7 @@ const createWindow = () => {
     show: false, // Hide initially
     icon: iconPath,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -116,7 +111,7 @@ const createWindow = () => {
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 
   // Show main window when ready and close splash

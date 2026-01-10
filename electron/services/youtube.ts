@@ -1,8 +1,11 @@
 import { app, shell } from 'electron';
 import path from 'path';
-import execa from 'execa';
+import { spawn, execFile } from 'child_process';
+import { promisify } from 'util';
 import { BinariesManager } from './binaries';
 import fs from 'fs-extra';
+
+const execFileAsync = promisify(execFile);
 
 export interface DownloadOptions {
     format: 'mp3' | 'mp4';
@@ -30,7 +33,7 @@ export class YoutubeService {
             const isPlaylist = url.includes('list=');
             
             if (isPlaylist) {
-                 const { stdout } = await execa(paths.ytdlp, [
+                 const { stdout } = await execFileAsync(paths.ytdlp, [
                     '--quiet',
                     '--no-warnings',
                     '--dump-single-json',
@@ -54,7 +57,7 @@ export class YoutubeService {
                     playlistCount: data.playlist_count || data.entries?.length || 0
                 };
             } else {
-                const { stdout } = await execa(paths.ytdlp, [
+                const { stdout } = await execFileAsync(paths.ytdlp, [
                     '--quiet',
                     '--no-warnings',
                     '--dump-single-json',
@@ -115,7 +118,7 @@ export class YoutubeService {
             YoutubeService.isCancelled = false;
             YoutubeService.cancelCallback = reject;
             
-            const subprocess = execa(paths.ytdlp, args);
+            const subprocess = spawn(paths.ytdlp, args);
             YoutubeService.activeProcess = subprocess;
             console.log('[YoutubeService] Started process, PID:', subprocess.pid);
             
@@ -147,19 +150,25 @@ export class YoutubeService {
                 });
             }
 
-            subprocess.then(() => {
+            subprocess.on('close', (code) => {
                 YoutubeService.activeProcess = null;
                 YoutubeService.cancelCallback = null;
-                resolve();
-            }).catch((err: any) => {
-                YoutubeService.activeProcess = null;
-                YoutubeService.cancelCallback = null;
-                // Check for SIGTERM or SIGKILL (cancellation) or explicit cancellation flag
-                if (YoutubeService.isCancelled || err.signal === 'SIGTERM' || err.signal === 'SIGKILL' || err.isCanceled) {
-                    reject(new Error('Téléchargement annulé par l\'utilisateur'));
+                if (code === 0) {
+                    resolve();
                 } else {
-                    reject(err);
+                    // Check for SIGTERM or SIGKILL (cancellation) or explicit cancellation flag
+                    if (YoutubeService.isCancelled) {
+                        reject(new Error('Téléchargement annulé par l\'utilisateur'));
+                    } else {
+                        reject(new Error(`Process exited with code ${code}`));
+                    }
                 }
+            });
+
+            subprocess.on('error', (err) => {
+                YoutubeService.activeProcess = null;
+                YoutubeService.cancelCallback = null;
+                reject(err);
             });
         });
     }
