@@ -62,5 +62,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
       login: (url: string, user: string, pass: string) => ipcRenderer.invoke('synology:login', url, user, pass),
       getSystemData: () => ipcRenderer.invoke('synology:get-system-data'),
       executeAction: (action: string) => ipcRenderer.invoke('synology:execute-action', action),
+      openSsh: (user: string, host: string) => ipcRenderer.invoke('synology:open-ssh', user, host),
+  },
+
+  // SSH Terminal API
+  ssh: {
+    connect: (config: any) => ipcRenderer.invoke('ssh:connect', config),
+    write: (data: string) => ipcRenderer.invoke('ssh:write', data),
+    resize: (cols: number, rows: number) => ipcRenderer.invoke('ssh:resize', cols, rows),
+    disconnect: () => ipcRenderer.invoke('ssh:disconnect'),
+    onData: (callback: (data: string) => void) => {
+        const wrapper = (_event: any, data: string) => callback(data);
+        ipcRenderer.on('ssh:data', wrapper);
+        return () => ipcRenderer.removeListener('ssh:data', wrapper);
+    },
+    onStatus: (callback: (status: string) => void) => {
+        const wrapper = (_event: any, status: string) => callback(status);
+        ipcRenderer.on('ssh:status', wrapper);
+        return () => ipcRenderer.removeListener('ssh:status', wrapper);
+    },
+    onError: (callback: (error: string) => void) => {
+        const wrapper = (_event: any, error: string) => callback(error);
+        ipcRenderer.on('ssh:error', wrapper);
+        return () => ipcRenderer.removeListener('ssh:error', wrapper);
+    }
   }
 });

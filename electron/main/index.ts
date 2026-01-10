@@ -1,11 +1,13 @@
 import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, shell, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import { SecurityService } from '../services/security';
 import { StorageService } from '../services/storage';
 import { BinariesManager } from '../services/binaries';
 import { YoutubeService } from '../services/youtube';
 import { synologyService } from '../services/synology';
+import { SshService } from '../services/ssh';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
@@ -26,6 +28,7 @@ app.setAppUserModelId('MG Tools');
 
 let mainWindow: BrowserWindow | null;
 let splashWindow: BrowserWindow | null;
+let sshService: SshService | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
@@ -136,6 +139,9 @@ const createWindow = () => {
       }, 3000);
   });
 
+  // Initialize SSH Service
+  sshService = new SshService(mainWindow);
+
   // Handle Close to Tray
   mainWindow.on('close', (event) => {
       if (!isQuitting) {
@@ -243,7 +249,56 @@ app.on('ready', () => {
        isQuitting = true;
    });
 
-  ipcMain.handle('proxy-request', async (_event, url: string, options: RequestInit) => {
+  // Synology API
+  ipcMain.handle('synology:login', async (_event, url, user, pass) => {
+    return synologyService.login(url, user, pass);
+  });
+
+  ipcMain.handle('synology:get-system-data', async () => {
+    return synologyService.getSystemData();
+  });
+
+  ipcMain.handle('synology:execute-action', async (_event, action) => {
+    return synologyService.executeAction(action as any);
+  });
+
+  ipcMain.handle('synology:open-ssh', async (_event, user: string, hostUrl: string) => {
+    try {
+        let hostname = hostUrl;
+        try {
+            const urlObj = new URL(hostUrl);
+            hostname = urlObj.hostname;
+        } catch (e) {
+            hostname = hostUrl.replace(/^https?:\/\//, '').split(':')[0];
+        }
+
+        const command = `start ssh ${user}@${hostname}`;
+        spawn(command, { shell: true, detached: true });
+        return true;
+    } catch (error) {
+        log.error('Failed to open SSH:', error);
+        throw error;
+    }
+   });
+
+   // SSH Handlers
+   ipcMain.handle('ssh:connect', (_event, config) => {
+       sshService?.connect(config);
+   });
+
+   ipcMain.handle('ssh:write', (_event, data) => {
+       sshService?.write(data);
+   });
+
+   ipcMain.handle('ssh:resize', (_event, cols, rows) => {
+       sshService?.resize(cols, rows);
+   });
+
+   ipcMain.handle('ssh:disconnect', () => {
+       sshService?.disconnect();
+   });
+
+   ipcMain.handle('proxy-request', async (_event, url: string, options: RequestInit) => {
     try {
       const response = await fetch(url, options);
       const data = await response.json();
@@ -432,18 +487,6 @@ ipcMain.handle('download-file', async (_event, url: string, fileName: string, id
             console.error('Copy file error:', error);
             return { success: false, error: error.message };
         }
-    });
-
-    ipcMain.handle('synology:login', async (_, url, user, password) => {
-        return synologyService.login(url, user, password);
-    });
-
-    ipcMain.handle('synology:get-system-data', async () => {
-        return synologyService.getSystemData();
-    });
-
-    ipcMain.handle('synology:execute-action', async (_, action) => {
-        return synologyService.executeAction(action);
     });
 
 app.on('window-all-closed', () => {

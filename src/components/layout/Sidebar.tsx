@@ -16,10 +16,8 @@ const DiscordIcon = ({ className }: { className?: string }) => (
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
-import { DelugeService } from '../../services/deluge';
-import { ProwlarrService } from '../../services/prowlarr';
-import { SeriesService } from '../../services/series';
 import { useDownload } from '../../contexts/DownloadContext';
+import { useServiceStatus } from '../../contexts/ServiceStatusContext';
 
 const ALL_ITEMS = [
   { id: 'home', to: '/', icon: Home, label: 'Accueil' },
@@ -33,8 +31,7 @@ const ALL_ITEMS = [
 
 export function Sidebar() {
   const { isDownloading } = useDownload();
-  const [health, setHealth] = useState<Record<string, boolean>>({});
-  const [hasSeriesUpdates, setHasSeriesUpdates] = useState(false);
+  const { health, hasSeriesUpdates } = useServiceStatus();
   const [isCollapsed, setIsCollapsed] = useState(() => {
       return localStorage.getItem('sidebar_collapsed') === 'true';
   });
@@ -44,21 +41,6 @@ export function Sidebar() {
   });
 
   useEffect(() => {
-    const check = async () => {
-      const deluge = await DelugeService.checkHealth();
-      const prowlarr = await ProwlarrService.checkHealth();
-      setHealth({ '/deluge': deluge, '/prowlarr': prowlarr });
-      setHasSeriesUpdates(SeriesService.hasUpdates());
-    };
-    
-    // Initial check
-    check();
-    // Check series status on mount
-    SeriesService.checkStatusChanges().then(() => check()).catch(console.error);
-    
-    // Poll every 30s
-    const interval = setInterval(check, 30000);
-
     // Load sidebar config
     const loadConfig = () => {
         const stored = localStorage.getItem('sidebar_config');
@@ -93,7 +75,6 @@ export function Sidebar() {
     window.addEventListener('sidebar-config-changed', handleConfigChange);
     
     return () => {
-        clearInterval(interval);
         window.removeEventListener('sidebar-config-changed', handleConfigChange);
     };
   }, []);
@@ -172,7 +153,7 @@ export function Sidebar() {
             {/* Status Indicators */}
             {!isCollapsed && (
                 <>
-                    {(item.to === '/deluge' || item.to === '/prowlarr') && health[item.to] !== undefined && (
+                    {(item.to === '/deluge' || item.to === '/prowlarr' || item.to === '/synology') && health[item.to] !== undefined && (
                         <div className={cn("h-2 w-2 rounded-full transition-colors", 
                             health[item.to] ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500/50"
                         )} title={health[item.to] ? "Connecté" : "Déconnecté"} />
@@ -187,7 +168,7 @@ export function Sidebar() {
             )}
             {isCollapsed && (
                  <>
-                    {(item.to === '/deluge' || item.to === '/prowlarr') && health[item.to] !== undefined && (
+                    {(item.to === '/deluge' || item.to === '/prowlarr' || item.to === '/synology') && health[item.to] !== undefined && (
                         <div className={cn("absolute top-1 right-1 h-2 w-2 rounded-full transition-colors border border-card", 
                             health[item.to] ? "bg-green-500" : "bg-red-500"
                         )} />

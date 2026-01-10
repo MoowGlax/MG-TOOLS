@@ -38,8 +38,20 @@ interface IElectronAPI {
   // Synology API
   synology: {
       login: (url: string, user: string, pass: string) => Promise<boolean>;
-      getSystemData: () => Promise<any>;
-      executeAction: (action: 'reboot' | 'shutdown') => Promise<boolean>;
+    getSystemData: () => Promise<any>;
+    executeAction: (action: 'reboot' | 'shutdown') => Promise<boolean>;
+    openSsh: (user: string, host: string) => Promise<void>;
+  };
+
+  // SSH API
+  ssh: {
+    connect: (config: { host: string; port?: number; username: string; password?: string; privateKey?: string }) => Promise<void>;
+    write: (data: string) => Promise<void>;
+    resize: (cols: number, rows: number) => Promise<void>;
+    disconnect: () => Promise<void>;
+    onData: (callback: (data: string) => void) => () => void;
+    onStatus: (callback: (status: string) => void) => () => void;
+    onError: (callback: (error: string) => void) => () => void;
   };
 }
 

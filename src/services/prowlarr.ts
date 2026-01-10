@@ -19,21 +19,32 @@ export interface ProwlarrRelease {
 let currentUrl = '';
 let currentApiKey = '';
 
-// Cache simple : Map<clé, {data, timestamp}>
-const CACHE_DURATION = 60 * 60 * 1000; // 1 heure
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const requestCache = new Map<string, { data: any; timestamp: number }>();
+// Cache simple avec localStorage pour la persistance
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
 
 const getCached = (key: string) => {
-  const cached = requestCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
+  try {
+    const item = localStorage.getItem(`prowlarr_${key}`);
+    if (!item) return null;
+    
+    const cached = JSON.parse(item);
+    if (Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+    // Clean expired
+    localStorage.removeItem(`prowlarr_${key}`);
+    return null;
+  } catch (e) {
+    return null;
   }
-  return null;
 };
 
 const setCache = (key: string, data: any) => {
-  requestCache.set(key, { data, timestamp: Date.now() });
+  try {
+    localStorage.setItem(`prowlarr_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {
+    console.warn('Failed to save to localStorage', e);
+  }
 };
 
 export const ProwlarrService = {
@@ -58,10 +69,16 @@ export const ProwlarrService = {
   },
 
   getNextUpdate: () => {
-      // Find the key with the latest timestamp
+      // Find the key with the latest timestamp in localStorage
       let max = 0;
-      for (const val of requestCache.values()) {
-          if (val.timestamp > max) max = val.timestamp;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('prowlarr_')) {
+            try {
+                const item = JSON.parse(localStorage.getItem(key) || '{}');
+                if (item.timestamp > max) max = item.timestamp;
+            } catch {}
+        }
       }
       return max > 0 ? max + CACHE_DURATION : null;
   },

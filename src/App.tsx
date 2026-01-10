@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AppProvider } from './contexts/AppContext';
 import { DownloadProvider } from './contexts/DownloadContext';
+import { ServiceStatusProvider } from './contexts/ServiceStatusContext';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Deluge } from './pages/Deluge';
@@ -49,11 +50,13 @@ function App() {
   return (
     <AppProvider>
       <DownloadProvider>
-        <HashRouter>
-          <Toaster position="top-right" richColors />
-          <DownloadManager />
-          <AnimatedRoutes />
-        </HashRouter>
+        <ServiceStatusProvider>
+          <HashRouter>
+            <Toaster position="top-right" richColors />
+            <DownloadManager />
+            <AnimatedRoutes />
+          </HashRouter>
+        </ServiceStatusProvider>
       </DownloadProvider>
     </AppProvider>
   );

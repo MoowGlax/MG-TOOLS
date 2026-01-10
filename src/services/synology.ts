@@ -7,5 +7,16 @@ export const SynologyService = {
   },
   executeAction: async (action: 'reboot' | 'shutdown') => {
     return window.electronAPI.synology.executeAction(action);
+  },
+  openSsh: async (user: string, host: string) => {
+    return window.electronAPI.synology.openSsh(user, host);
+  },
+  checkHealth: async () => {
+    try {
+        await window.electronAPI.synology.getSystemData();
+        return true;
+    } catch {
+        return false;
+    }
   }
 };
