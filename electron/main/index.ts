@@ -229,6 +229,12 @@ app.on('ready', () => {
     log.info('Update downloaded:', info);
     mainWindow?.webContents.send('update-status', 'downloaded');
   });
+  
+  // Debug: Log when quitAndInstall is called and if it triggers before-quit
+   autoUpdater.on('before-quit-for-update' as any, () => {
+       log.info('AutoUpdater is preparing to quit for update...');
+       isQuitting = true;
+   });
 
   ipcMain.handle('proxy-request', async (_event, url: string, options: RequestInit) => {
     try {
